@@ -1,2 +1,17 @@
-EIei
-Lor tae
+This is an expo project for the Project Amoro app.
+
+## Do Not touch the package.json file
+## Do not touch the app.json file
+## Do not touch the .expo file
+## Do not touch the .gitignore file
+
+## How to run the project
+
+1. Run `npm start`
+
+Edit path and tabbar via App.tsx file
+
+
+
+
+
