@@ -1,25 +1,42 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Image, Dimensions, Animated } from 'react-native';
 
-export default function App() {
+const { width, height } = Dimensions.get('window');
+
+const App = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>สวัสดีครับพี่ชายฟร้อนเอนทั้งหลาย เวลคัมๆ !</Text>
       <Text style={styles.text}>สุ้ๆ นะ ทำเป็น tsx ให้ละ เลิฟยู </Text>
-      <StatusBar style="auto" />
+      {/* Background Heart GIF */}
+      <Image
+        source={require('./assets/img/heart.gif')} // Adjust the path if necessary
+        style={styles.backgroundGif}
+        resizeMode="cover"
+      />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative', 
   },
   text: {
-    fontSize: 20,
+    fontSize: 50,
     fontWeight: 'bold',
+    color: 'black',
+    zIndex: 1,
+  },
+  backgroundGif: {
+    position: 'absolute',
+    width: width,
+    height: height, 
+    opacity: 0.5,
   },
 });
+
+export default App;
