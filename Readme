@@ -1,17 +1,148 @@
-This is an expo project for the Project Amoro app.
+# 🚀 Project Amoro - Expo Application
 
-## Do Not touch the package.json file
-## Do not touch the app.json file
-## Do not touch the .expo file
-## Do not touch the .gitignore file
+![Project Banner](assets/images/banner.png)
 
-## How to run the project
+---
 
-1. Run `npm start`
+## 📜 Table of Contents
+- [🏗️ Project Structure](#️-project-structure)
+- [⚙️ Development Setup](#️-development-setup)
+- [📜 Coding Standards](#-coding-standards)
+- [🎨 Design System](#-design-system)
+- [🔒 Preservation Zones](#-preservation-zones)
+- [🔄 Update Policy](#-update-policy)
+- [🧪 Quality Assurance](#-quality-assurance)
 
-Edit path and tabbar via App.tsx file
+---
 
+## 🏗️ Project Structure
+AMORO/
+├── assets/
+│   ├── img/               # Image assets
+│   │   ├── adaptive-icon.png
+│   │   ├── favicon.png
+│   │   ├── icon.png
+│   │   └── splash-icon.png
+│
+├── screens/               # Screen components
+│   ├── Authentication/
+│   ├── Home/
+│   ├── Mood/
+│   ├── Notifications/
+│   ├── Profile/
+│   └── ToDoList/
+│
+├── .expo/                 # Expo configuration (hidden)
+├── node_modules/          # Dependencies (hidden)
+│         
+├── app.json               # Expo app configuration
+├── App.tsx                # Main application entry
+├── firebaseConfig.ts      # Firebase configuration
+├── index.tsx              # Entry point for the app
+├── package-lock.json      # NPM lock file
+├── package.json           # Project metadata
+├── Readme                 # Documentation file
+└── tsconfig.json          # TypeScript configuration
 
+---
 
-firebase chai yang gnai wa chuay duay Nut mai tam ngan 
+## ⚙️ Development Setup
 
+### Installation
+```bash
+npm install
+```
+
+### Local Development
+```bash
+npm start
+```
+
+### Production Build
+```bash
+npm run build
+```
+
+---
+
+## 📜 Coding Standards
+
+### 1. Naming Conventions
+```typescript
+// ✅ Good
+const FETCH_USER = () => {};  // Verb in UPPERCASE
+const userProfile = {};       // Noun in lowercase
+const API_ENDPOINT = '...';   // Constant in UPPERCASE
+
+// ❌ Bad
+const GetUser = () => {};     // Mixed case verb
+const userDATA = {};          // Mixed case noun
+```
+
+### 2. Variable Clarity
+| Scenario          | Allowed Abbreviations |
+|--------------------|------------------------|
+| Temporary variables| `tmp`, `val`, `res`    |
+| Math formulas      | `x`, `y`, `z`          |
+| Common terms       | `UI`, `API`, `DB`      |
+
+---
+
+## 🎨 Design System
+
+### Color Management
+```assets/styles/colorscheme.ts
+// Primary Colors
+export const COLORS = {
+  PRIMARY_BLUE: '#007BFF',     // Main brand color
+  BACKGROUND: '#F5F5F5',       // Screen backgrounds
+  TEXT_MAIN: '#333333',        // Primary text
+  BORDER_LIGHT: '#DDDDDD'      // Divider lines
+};
+```
+
+### Asset Organization
+```bash
+assets/
+├── styles/
+│   ├── colorscheme.ts    # Color variables
+│   └── theme.ts          # Spacing/typography
+├── images/
+│   ├── banners/          # Marketing images
+│   └── icons/            # System icons
+└── ...other asset types
+```
+
+---
+
+## 🔒 Preservation Zones
+```diff
+- NEVER MODIFY -
+▸ package.json
+▸ app.json
+▸ .expo/
+▸ .gitignore
+```
+
+---
+
+## 🔄 Update Policy
+1. **Colors**:  
+   Always reference `COLORS` from colorscheme.ts  
+   `BAD: backgroundColor: '#fff'`  
+   `GOOD: backgroundColor: COLORS.BACKGROUND`
+
+2. **Assets**:  
+   New images → `/assets/images/[category]`  
+   New fonts → `/assets/fonts/`
+
+3. **Screens**:  
+   Keep pure logic - no assets in screen files
+
+---
+
+## 🧪 Quality Assurance
+Pre-commit Checklist:
+   - [ ] Color variables used everywhere
+   - [ ] Assets in correct categorized folders
+   - [ ] No mixed-case variable names
