@@ -9,11 +9,7 @@ const App = () => {
       <Text style={styles.text}>สวัสดีครับพี่ชายฟร้อนเอนทั้งหลาย เวลคัมๆ !</Text>
       <Text style={styles.text}>สุ้ๆ นะ ทำเป็น tsx ให้ละ เลิฟยู </Text>
       {/* Background Heart GIF */}
-      <Image
-        source={require('./assets/img/heart.gif')} // Adjust the path if necessary
-        style={styles.backgroundGif}
-        resizeMode="cover"
-      />
+      
     </View>
   );
 };
