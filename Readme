@@ -24,6 +24,14 @@ AMORO/
 │   │   ├── icon.png
 │   │   └── splash-icon.png
 │
+├── components/            # Reusable UI components
+│   ├── Buttons/            # Button components (e.g., CustomButton, IconButton)
+│   ├── InputFields/        # Input field components (e.g., TextInputField, PasswordInputField)
+│   ├── MoodBox/            # Components for mood-related UI elements
+│   ├── NotificationBox/    # Components for displaying notifications
+│   ├── ReviewBox/          # Components for user reviews
+│   └── TaskBox/            # Components related to tasks and to-do items
+│
 ├── screens/               # Screen components
 │   ├── Authentication/
 │   ├── Home/
@@ -34,7 +42,7 @@ AMORO/
 │
 ├── .expo/                 # Expo configuration (hidden)
 ├── node_modules/          # Dependencies (hidden)
-│         
+│
 ├── app.json               # Expo app configuration
 ├── App.tsx                # Main application entry
 ├── firebaseConfig.ts      # Firebase configuration
