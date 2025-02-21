@@ -13,10 +13,6 @@ const AddTaskScreen = () => {
   const [endTime, setEndTime] = useState('');
   const [withPartner, setWithPartner] = useState(false);
 
-
-
-   
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Add Task</Text>
@@ -43,7 +39,7 @@ const AddTaskScreen = () => {
           <Text>Date</Text>
           <TextInput
             style={styles.input}
-            placeholder="DD/MM/YYYY"
+            placeholder="YYYY-MM-DD"
             value={date}
             onChangeText={setDate}
           />

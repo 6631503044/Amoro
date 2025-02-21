@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { auth } from '../../Backend/firebaseConfig';
 import { useNavigation } from '@react-navigation/native';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -14,6 +15,22 @@ const ProfileScreen = () => {
       navigation.navigate('Login');
     } catch (error) {
       console.error('Logout failed:', error);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user || !user.email) {
+        Alert.alert('Error', 'No authenticated user found');
+        return;
+      }
+      
+      await sendPasswordResetEmail(auth, user.email);
+      Alert.alert('Success', 'Password reset email sent. Check your inbox.');
+    } catch (error) {
+      console.error('Password reset failed:', error);
+      Alert.alert('Error', error.message);
     }
   };
 
@@ -40,7 +57,10 @@ const ProfileScreen = () => {
           <Text style={styles.rowText}>Edit profile</Text>
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.row}>
+        <TouchableOpacity 
+          style={styles.row}
+          onPress={handleResetPassword}
+        >
           <Text style={styles.rowText}>Reset Password</Text>
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>

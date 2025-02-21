@@ -1,59 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Button } from 'react-native';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '../../Backend/firebaseConfig';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import { FetchtaskforDate } from '../../Backend/controller/dataController';
 
-const fetchTasksForDate = async (date: string) => {
-  console.log('[DEBUG] Starting fetch for date:', date);
-  const currentUser = auth.currentUser;
-  console.log('[DEBUG] Current user UID:', currentUser.uid || 'No user');
-  
-  try {
-    const tasksRef = collection(db, 'tasks', currentUser.uid, date);
-    console.log('[DEBUG] Tasks collection path:', tasksRef.path);
-    
-    const querySnapshot = await getDocs(tasksRef);
-    console.log('[DEBUG] Found tasks:', querySnapshot.docs.map(d => d.id));
-
-    const tasks = await Promise.all(querySnapshot.docs.map(async docSnapshot => {
-      const taskId = docSnapshot.id;
-      const taskDetailCollectionRef = collection(db, 'tasks', currentUser.uid, date, taskId, 'taskDetail');
-      console.log('Fetching task detail collection for:', taskDetailCollectionRef.path);
-      const taskDetailSnapshot = await getDocs(taskDetailCollectionRef);
-      
-      // Combine all task detail documents
-      const taskDetails = taskDetailSnapshot.docs.map(detailDoc => detailDoc.data());
-      
-      console.log('fetch success');
-      
-      return {
-        id: taskId,
-        ...docSnapshot.data(),
-        taskDetail: taskDetails[0] || {}, // Take the first document if exists
-      };
-    }));
-
-    return tasks;
-  } catch (error) {
-    console.error('Error fetching tasks:', error);
-    return [];
-  }
+// Define your navigation param types
+type RootStackParamList = {
+  EditableDetailScreen: { 
+    taskId: string;
+    date: string;
+    taskDetails: any;
+  };
+  // ... other screen definitions
 };
 
 const ToDoListScreen = () => {
   const [tasks, setTasks] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   useFocusEffect(
     React.useCallback(() => {
       const fetchTasks = async () => {
         const currentDate = selectedDate.toISOString().split('T')[0];
         console.log('Fetching tasks for:', currentDate);
-        const tasksForDate = await fetchTasksForDate(currentDate);
+        const tasksForDate = await FetchtaskforDate({date: currentDate});
         setTasks(tasksForDate);
       };
       
@@ -65,12 +38,19 @@ const ToDoListScreen = () => {
   );
 
   const renderTask = ({ item }: { item: any }) => (
-    <View style={styles.taskContainer}>
+    <TouchableOpacity 
+      style={styles.taskContainer}
+      onPress={() => navigation.navigate('EditableDetailScreen', { 
+        taskId: item.id,
+        date: selectedDate.toISOString().split('T')[0],
+        taskDetails: item.taskDetail
+      })}
+    >
       <Text style={styles.taskTitle}>{item.taskDetail.title}</Text>
       <Text style={styles.taskDetails}>Start Time: {item.taskDetail.startTime}</Text>
       <Text style={styles.taskDetails}>End Time: {item.taskDetail.endTime}</Text>
       <Text style={styles.taskDetails}>Description: {item.taskDetail.description}</Text>
-    </View>
+    </TouchableOpacity>
   );
 
   return (

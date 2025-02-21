@@ -1,17 +1,45 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithCredential} from 'firebase/auth';
 import { doc, setDoc} from 'firebase/firestore';
 import { FontAwesome } from '@expo/vector-icons';
 import { auth, db } from '../../Backend/firebaseConfig'; 
 import { useNavigation } from '@react-navigation/native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const SignupScreen = () => {
   console.log('SignupScreen rendered'); 
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const navigation = useNavigation();
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: 'YOUR_CLIENT_ID.apps.googleusercontent.com', // Replace with your client ID
+  });
+
+  React.useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+
+      // Create a new Firebase credential with the Google access token
+      const credential = GoogleAuthProvider.credential(id_token);
+
+      // Sign in with the credential
+      signInWithCredential(auth, credential)
+        .then(() => {
+          Alert.alert('Success', 'You are now signed in with Google!');
+        })
+        .catch((error) => {
+          console.error(error);
+          Alert.alert('Error', 'Failed to sign in with Google');
+        });
+    }
+  }, [response]);
 
   const handleSignUp = async () => {
     try {
@@ -22,6 +50,7 @@ const SignupScreen = () => {
 
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
+        username: username, 
         password: password,
         createdAt: new Date(),
       });
@@ -49,6 +78,16 @@ const SignupScreen = () => {
         />
       </View>
       <View style={styles.inputContainer}>
+        <FontAwesome name="envelope" size={20} color="black" />
+        <TextInput
+          style={styles.input}
+          placeholder="Username"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+        />
+      </View>
+      <View style={styles.inputContainer}>
         <FontAwesome name="lock" size={20} color="black" />
         <TextInput
           style={styles.input}
@@ -62,8 +101,13 @@ const SignupScreen = () => {
         <Text style={styles.buttonText}>Sign up</Text>
       </TouchableOpacity>
       <Text style={styles.orText}>or continue with email</Text>
-      <TouchableOpacity style={styles.socialButton}>
-        <FontAwesome name="google" size={20} color="red" />
+      <TouchableOpacity
+        disabled={!request}
+        title="Login with Google"
+        onPress={() => {
+          promptAsync();
+        }}
+      >
         <Text style={styles.socialButtonText}>Login with Google</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.socialButton}>
@@ -98,7 +142,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 5,
     paddingHorizontal: 10,
     marginVertical: 10,
     width: '100%',
@@ -106,6 +149,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 40,
+    paddingLeft: 10,
     marginLeft: 10,
   },
   button: {
