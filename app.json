@@ -23,6 +23,8 @@
     },
     "web": {
       "favicon": "./assets/img/favicon.png"
-    }
+    },
+    "assetBundlePatterns": ["**/*"],
+    "plugins": ["react-native-vector-icons"]
   }
 }
