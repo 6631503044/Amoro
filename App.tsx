@@ -1,16 +1,20 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, Dimensions, Animated } from 'react-native';
+import Action from './components/Buttons/ActionButton';
+import ActionButton from './components/Buttons/ActionButton';
+import BackButton from './components/Buttons/BackButton';
+import SlideSwitch from './components/Buttons/SlideSwitch';
 
 const { width, height } = Dimensions.get('window');
 
 const App = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>สวัสดีครับพี่ชายฟร้อนเอนทั้งหลาย เวลคัมๆ !</Text>
-      <Text style={styles.text}>สุ้ๆ นะ ทำเป็น tsx ให้ละ เลิฟยู </Text>
-      {/* Background Heart GIF */}
-      
+  
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f5f5f5" }}>
+      <SlideSwitch />
     </View>
+
+     
   );
 };
 
