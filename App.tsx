@@ -1,15 +1,20 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, Dimensions, Animated } from 'react-native';
+import MoodBoxSingle from './components/MoodBox/MoodBoxSingle';
+import MoodBoxCouple from './components/MoodBox/MoodBoxCouple';
+import TaskBoxSingle from './components/TaskBox/TaskBoxSingle';
+import NotificationBoxCouple from './components/NotificationBox/NotificationBoxCouple';
+import ReviewBoxSingle from './components/ReviewBox/ReviewBox';
 
 const { width, height } = Dimensions.get('window');
 
 const App = () => {
   return (
+    
     <View style={styles.container}>
-      <Text style={styles.text}>สวัสดีครับพี่ชายฟร้อนเอนทั้งหลาย เวลคัมๆ !</Text>
-      <Text style={styles.text}>สุ้ๆ นะ ทำเป็น tsx ให้ละ เลิฟยู </Text>
-      {/* Background Heart GIF */}
-      
+            <ReviewBoxSingle 
+        reviewText="The movie in that scene was too big. I want to ride a big dragon. 🐉🔥🔥🔥"
+      />
     </View>
   );
 };
