@@ -7,7 +7,6 @@ import NotificationBoxCouple from './components/NotificationBox/NotificationBoxC
 import ReviewBoxSingle from './components/ReviewBox/ReviewBox';
 
 const { width, height } = Dimensions.get('window');
-import { primarycolor } from './assets/img/styles';
 
 const App = () => {
   return (
@@ -26,13 +25,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative', 
-    
   },
   text: {
     fontSize: 50,
     fontWeight: 'bold',
-    color: primarycolor,
+    color: 'black',
     zIndex: 1,
+  },
+  backgroundGif: {
+    position: 'absolute',
+    width: width,
+    height: height, 
+    opacity: 0.5,
   },
 });
 
