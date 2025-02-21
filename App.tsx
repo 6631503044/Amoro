@@ -12,7 +12,6 @@ import InputField from './components/InputFields/InputField'; // Path to InputFi
 >>>>>>> Stashed changes
 
 const { width, height } = Dimensions.get('window');
-import { primarycolor } from './assets/img/styles';
 
 const App = () => {
   return (
@@ -41,16 +40,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
 <<<<<<< Updated upstream
     position: 'relative', 
-    
   },
   text: {
     fontSize: 50,
     fontWeight: 'bold',
-    color: primarycolor,
+    color: 'black',
     zIndex: 1,
 =======
     backgroundColor: '#f5f5f5',
 >>>>>>> Stashed changes
+  },
+  backgroundGif: {
+    position: 'absolute',
+    width: width,
+    height: height, 
+    opacity: 0.5,
   },
 });
 
