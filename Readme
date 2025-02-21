@@ -19,10 +19,6 @@
 AMORO/
 ├── assets/
 │   ├── img/               # Image assets
-│   │   ├── adaptive-icon.png
-│   │   ├── favicon.png
-│   │   ├── icon.png
-│   │   └── splash-icon.png
 │
 ├── screens/               # Screen components
 │   ├── Authentication/
