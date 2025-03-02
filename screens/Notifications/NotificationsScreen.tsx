@@ -1,6 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import NotificationBoxCouple from '../../components/NotificationBox/NotificationBoxCouple';
+import MeetIcon from '../../assets/icon.svg/meet';
+import PartyIcon from '../../assets/icon.svg/party';
+import WalkIcon from '../../assets/icon.svg/walk';
 
 const notifications = [
   {
@@ -9,7 +12,7 @@ const notifications = [
     title: 'Meeting with the Sathu',
     location: 'Location',
     description: 'description..ww.',
-    iconSource: require('../'), // Replace with actual icon path
+    iconSource: MeetIcon, // SVG Component
     color: '#FF969A',
   },
   {
@@ -18,7 +21,7 @@ const notifications = [
     title: 'Meeting with the black one',
     location: 'Location',
     description: 'description...',
-    iconSource: require('../assets/icon.svg/party'), // Replace with actual icon path
+    iconSource: PartyIcon, // SVG Component
     color: '#FF969A',
   },
   {
@@ -27,7 +30,7 @@ const notifications = [
     title: 'Meeting with the black one',
     location: 'Location',
     description: 'description...',
-    iconSource: require('../assets/icon.svg/walk'), // Replace with actual icon path
+    iconSource: WalkIcon, // SVG Component
     color: '#96B3FF',
   },
   {
@@ -36,7 +39,7 @@ const notifications = [
     title: 'Meeting with the black one',
     location: 'Location',
     description: 'description...',
-    iconSource: require('../assets/icon.svg/party'), // Replace with actual icon path
+    iconSource: PartyIcon, // SVG Component
     color: '#FF969A',
   },
 ];
@@ -54,7 +57,11 @@ const NotificationsScreen = () => {
             <Text style={styles.text}>{notification.location}</Text>
             <Text style={styles.text}>{notification.description}</Text>
           </View>
-          <Image source={notification.iconSource} style={styles.icon} />
+          {typeof notification.iconSource === 'string' ? (
+            <Image source={notification.iconSource} style={styles.icon} />
+          ) : (
+            <notification.iconSource width={40} height={40} />
+          )}
         </TouchableOpacity>
       ))}
     </ScrollView>
