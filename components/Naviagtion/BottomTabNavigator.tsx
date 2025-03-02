@@ -3,7 +3,13 @@ import { View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
-import Icon from "react-native-vector-icons/FontAwesome"; // 🎨 Using FontAwesome icons
+
+// Import SVG Icons
+import HeartIcon from "../../assets/icon.svg/heart";
+import NotiIcon from "../../assets/icon.svg/noti";
+import HomeIcon from "../../assets/icon.svg/home";
+import CorrectIcon from "../../assets/icon.svg/correct";
+import ProfileIcon from "../../assets/icon.svg/profile";
 
 // Import Screens
 import HomeScreen from "../../screens/Home/HomeScreen";
@@ -62,12 +68,12 @@ const BottomNavigation = () => {
         screenOptions={({ route }) => ({
           tabBarShowLabel: false, // ❌ Hide text labels
           tabBarIcon: ({ color, focused }) => {
-            let iconName = "circle"; // Default icon
-            if (route.name === "Home") iconName = "home";
-            else if (route.name === "Notifications") iconName = "bell";
-            else if (route.name === "Mood") iconName = "smile-o";
-            else if (route.name === "To-Do") iconName = "check";
-            else if (route.name === "Profile") iconName = "user";
+            let IconComponent: React.ElementType = HomeIcon; // Default icon
+
+            if (route.name === "Notifications") IconComponent = NotiIcon;
+            else if (route.name === "Mood") IconComponent = HeartIcon;
+            else if (route.name === "To-Do") IconComponent = CorrectIcon;
+            else if (route.name === "Profile") IconComponent = ProfileIcon;
 
             return (
               <View style={{ alignItems: "center", justifyContent: "center" }}>
@@ -84,7 +90,7 @@ const BottomNavigation = () => {
                     }}
                   />
                 )}
-                <Icon name={iconName} size={30} color={color} />
+                <IconComponent width={30} height={30} fill={color} />
               </View>
             );
           },
