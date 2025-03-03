@@ -3,15 +3,58 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { createStackNavigator } from "@react-navigation/stack";
 
 // Import Screens
 import HomeScreen from "../../screens/Home/HomeScreen";
+//Profile
 import ProfileScreen from "../../screens/Profile/ProfileScreen";
+//2Noti
 import NotificationsScreen from "../../screens/Notifications/NotificationsScreen";
+import ViewDetailScreen from "../../screens/Notifications/ViewDetailScreen";
+//3Mood
 import MoodBoardScreen from "../../screens/Mood/MoodBoardScreen";
+import MoodDetail from "../../screens/Mood/MoodDetail";
+import MoodReviewScreen from "../../screens/Mood/MoodReviewScreen";
+//4To do
 import TodolistScreen from "../../screens/ToDoList/TodolistScreen";
+import AddTaskScreen from "../../screens/ToDoList/AddTaskScreen";
+import EditTaskScreen from "../../screens/ToDoList/EditTaskScreen";
+import EditableDetailScreen from "../../screens/ToDoList/EditableDetailScreen";
+
+
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+// ✅ Stack Navigator for Notifications
+const NotificationsNavigator = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
+    <Stack.Screen name="ViewDetailScreen" component={ViewDetailScreen} />
+  </Stack.Navigator>
+);
+
+// ✅ Stack Navigator for Mood
+const MoodNavigator = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="MoodBoardScreen" component={MoodBoardScreen} />
+    <Stack.Screen name="MoodDetail" component={MoodDetail} />
+    <Stack.Screen name="MoodReviewScreen" component={MoodReviewScreen} />
+  </Stack.Navigator>
+);
+
+// ✅ Stack Navigator for To-Do List
+const ToDoNavigator = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="TodolistScreen" component={TodolistScreen} />
+    <Stack.Screen name="AddTaskScreen" component={AddTaskScreen} />
+    <Stack.Screen name="EditableDetailScreen" component={EditableDetailScreen} />
+    <Stack.Screen name="EditTaskScreen" component={EditTaskScreen} />
+  </Stack.Navigator>
+);
+
+
 
 const CustomTabBar = ({ state, descriptors, navigation }: any) => {
     return (
@@ -49,17 +92,16 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
 
 const BottomNavigation = () => {
     return (
-        <NavigationContainer>
-            <Tab.Navigator tabBar={(props) => <CustomTabBar {...props} />}>
-                <Tab.Screen name="Home" component={HomeScreen} />
-                <Tab.Screen name="To-Do" component={TodolistScreen} />
-                <Tab.Screen name="Mood" component={MoodBoardScreen} />
-                <Tab.Screen name="Notifications" component={NotificationsScreen} />
-                <Tab.Screen name="Profile" component={ProfileScreen} />
-            </Tab.Navigator>
-        </NavigationContainer>
+        <Tab.Navigator tabBar={(props) => <CustomTabBar {...props} />}>
+        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="To-Do" component={ToDoNavigator} />
+        <Tab.Screen name="Mood" component={MoodNavigator} />
+        <Tab.Screen name="Notifications" component={NotificationsNavigator} />
+        <Tab.Screen name="Profile" component={ProfileScreen} />
+        </Tab.Navigator>
     );
 };
+
 
 export default BottomNavigation;
 

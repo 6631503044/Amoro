@@ -1,14 +1,10 @@
-import React from "react";
-import { StatusBar } from "react-native";
-import BottomNavigation from "./components/Navigation/BottomTabNavigator"; // Adjust path if needed
+import { NavigationContainer } from "@react-navigation/native";
+import BottomNavigation from "./components/Navigation/BottomTabNavigator";
 
-const App = () => {
+export default function App() {
   return (
-    <>
-      <StatusBar barStyle="light-content" />
+    <NavigationContainer> 
       <BottomNavigation />
-    </>
+    </NavigationContainer>
   );
-};
-
-export default App;
+}
