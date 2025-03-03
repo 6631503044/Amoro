@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { View, Pressable } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
@@ -15,7 +15,7 @@ import ProfileIcon from "../../assets/icon.svg/profile";
 import HomeScreen from "../../screens/Home/HomeScreen";
 import ProfileScreen from "../../screens/Profile/ProfileScreen";
 
-// Notifications
+// Notifications Screens
 import NotificationsScreen from "../../screens/Notifications/NotificationsScreen";
 import ViewDetailScreen from "../../screens/Notifications/ViewDetailScreen";
 
@@ -60,13 +60,14 @@ const ToDoNavigator = () => (
   </Stack.Navigator>
 );
 
+
 // ✅ Bottom Navigation
 const BottomNavigation = () => {
   return (
     <NavigationContainer>
       <Tab.Navigator
         screenOptions={({ route }) => ({
-          tabBarShowLabel: false, // ❌ Hide text labels
+          tabBarShowLabel: false, // Hide text labels
           tabBarIcon: ({ color, focused }) => {
             let IconComponent: React.ElementType = HomeIcon; // Default icon
 
@@ -76,14 +77,20 @@ const BottomNavigation = () => {
             else if (route.name === "Profile") IconComponent = ProfileIcon;
 
             return (
-              <View style={{ alignItems: "center", justifyContent: "center" }}>
+              <View
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "relative", // Ensure positioning is relative
+                }}
+              >
                 {focused && (
                   <View
                     style={{
                       position: "absolute",
-                      bottom: -10,
-                      width: 65,
-                      height: 48,
+                      bottom: -10, // Adjust this to move highlight to center
+                      width: 60,
+                      height: 45,
                       backgroundColor: "#FF969A",
                       borderRadius: 20,
                       zIndex: -1,
@@ -97,12 +104,13 @@ const BottomNavigation = () => {
           tabBarActiveTintColor: "#FFFFFF",
           tabBarInactiveTintColor: "#B0B3C1",
           tabBarStyle: {
-            height: 69.54,
+            height: 70,
             backgroundColor: "#666B7E",
             borderTopLeftRadius: 15,
             borderTopRightRadius: 15,
             position: "absolute",
             paddingBottom: 5,
+            paddingTop: 10, // Adjust padding to center icons better
           },
         })}
       >
@@ -115,5 +123,4 @@ const BottomNavigation = () => {
     </NavigationContainer>
   );
 };
-
 export default BottomNavigation;
