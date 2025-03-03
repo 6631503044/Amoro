@@ -1,166 +1,109 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
-import { NavigationProp } from "@react-navigation/native";
-import TaskBoxCouple from "../../components/Taskbox/TaskBoxCouple";
-import TaskBoxSingle from "../../components/Taskbox/TaskBoxSingle";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { PlusCircle } from "lucide-react-native";
 
-//icon
-import MeetIcon from "../../assets/icon/meet";
-import WalkIcon from "../../assets/icon/walk";
-import WorkIcon from "../../assets/icon/work";
+const TodolistScreen = () => {
+    const navigation = useNavigation();
+    const [filter, setFilter] = useState("Week");
 
-type TodolistScreenNavigationProp = NavigationProp<any>; // Update with your navigation stack type
+    // Sample upcoming tasks
+    const tasks = [
+        {
+            date: "Monday 3 February 2025",
+            tasks: [
+                { startTime: "1:00 PM", endTime: "3:00 PM", title: "Wash my clothes", icon: "🧂", color: "#C4C8F2" },
+                { startTime: "4:00 PM", endTime: "5:00 PM", title: "Clean my room", icon: "🧹", color: "#C4C8F2" },
+                { startTime: "7:00 PM", endTime: "8:00 PM", title: "Playing video games and watching movies with Nut", icon: "🎮", color: "#FFCDD2" },
+            ],
+        },
+        {
+            date: "Tuesday 4 February 2025",
+            tasks: [
+                { startTime: "1:00 PM", endTime: "3:00 PM", title: "Wash my clothes", icon: "🧂", color: "#C4C8F2" },
+                { startTime: "7:00 PM", endTime: "8:00 PM", title: "Playing video games and watching movies with Nut", icon: "🎮", color: "#FFCDD2" },
+            ],
+        },
+        {
+            date: "Friday 6 February 2025",
+            tasks: [
+                { startTime: "1:00 PM", endTime: "3:00 PM", title: "Wash my clothes", icon: "🧂", color: "#C4C8F2" },
+            ],
+        },
+    ];
 
-interface Props {
-  navigation: TodolistScreenNavigationProp;
-}
+    return (
+        <View style={{ flex: 1, backgroundColor: "#FDF6F0", padding: 20 }}>
+            <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>To Do List</Text>
 
-const TodolistScreen: React.FC<Props> = ({ navigation }) => {
-  const [selectedFilter, setSelectedFilter] = useState("Day"); // Default to 'Day'
-  const [tasks, setTasks] = useState([
-    { id: 1, date: "Monday 3 February 2025", taskText: "Morning Jog", type: "Exercise", isSingle: true, startTime: "7:00 AM", endTime: "8:00 AM" },
-    { id: 2, date: "Monday 3 February 2025", taskText: "Team Meeting", type: "Meeting", isSingle: false, startTime: "9:00 AM", endTime: "10:00 AM" },
-    { id: 3, date: "Tuesday 4 February 2025", taskText: "Lunch with Client", type: "Meeting", isSingle: true, startTime: "12:00 PM", endTime: "1:00 PM" },
-    { id: 4, date: "Wednesday 5 February 2025", taskText: "Project Review", type: "Work", isSingle: false, startTime: "2:00 PM", endTime: "3:00 PM" },
-  ]);
+            {/* Filter Selection */}
+            <View style={{ flexDirection: "row", justifyContent: "space-around", marginBottom: 15 }}>
+                {["Day", "Week", "Month"].map((option) => (
+                    <TouchableOpacity
+                        key={option}
+                        onPress={() => setFilter(option)}
+                        style={{
+                            paddingVertical: 8,
+                            paddingHorizontal: 20,
+                            borderRadius: 10,
+                            backgroundColor: filter === option ? "#5063BF" : "#D3D4E2",
+                        }}
+                    >
+                        <Text style={{ color: filter === option ? "white" : "black", fontWeight: "bold" }}>{option}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
 
-  const handleFilterClick = (filter: string) => {
-    setSelectedFilter(filter);
-  };
+            {/* Task List */}
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
+                {tasks.map((section, index) => (
+                    <View key={index}>
+                        <Text style={{ fontSize: 16, fontWeight: "bold", marginVertical: 10 }}>{section.date}</Text>
+                        {section.tasks.map((task, i) => (
+                            <View key={i} style={{
+                                backgroundColor: task.color,
+                                padding: 15,
+                                borderRadius: 15,
+                                marginBottom: 10,
+                                flexDirection: "row",
+                                alignItems: "center",
+                            }}>
+                                <View style={{ alignItems: "center", marginRight: 10 }}>
+                                    <Text style={{ fontSize: 14 }}>{task.startTime}</Text>
+                                    <View style={{ width: 5, height: 20, backgroundColor: "#4A4A4A", borderRadius: 5, marginVertical: 2 }} />
+                                    <Text style={{ fontSize: 14 }}>{task.endTime}</Text>
+                                </View>
+                                <Text style={{ fontSize: 16, flex: 1 }}>{task.title}</Text>
+                                <Text style={{ fontSize: 18 }}>{task.icon}</Text>
+                            </View>
+                        ))}
+                    </View>
+                ))}
+            </ScrollView>
 
-  // Helper function to choose the correct icon based on task type
-  const getTaskIcon = (type: string) => {
-    switch (type) {
-      case "Exercise":
-        return <WalkIcon />; // Use the ExerciseIcon component
-      case "Meeting":
-        return <MeetIcon />; // Use the MeetingIcon component
-      case "Work":
-        return <WorkIcon />; // Use the WorkIcon component
-      default:
-        return <Text>❓</Text>; // Default icon
-    }
-  };
-
-  const renderTaskBox = (task: any) => {
-    const taskIcon = getTaskIcon(task.type); // Get the appropriate icon
-
-    if (task.isSingle) {
-      return (
-        <TaskBoxSingle
-          key={task.id}
-          startTime={task.startTime}
-          endTime={task.endTime}
-          taskText={task.taskText}
-          iconSource={taskIcon}
-        />
-      );
-    } else {
-      return (
-        <TaskBoxCouple
-          key={task.id}
-          startTime={task.startTime}
-          endTime={task.endTime}
-          taskText={task.taskText}
-          iconSource={taskIcon}
-        />
-      );
-    }
-  };
-
-  const renderNoTasksMessage = () => {
-    return <Text style={styles.noTasksText}>You don't have any tasks today!</Text>;
-  };
-
-  return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <Text style={styles.header}>Todolist</Text>
-
-      {/* Filters */}
-      <View style={styles.filterContainer}>
-        {["Day", "Week", "Month"].map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            style={[
-              styles.filterBox,
-              selectedFilter === filter && { backgroundColor: "lightblue" },
-            ]}
-            onPress={() => handleFilterClick(filter)}
-          >
-            <Text style={styles.filterText}>{filter}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Task List */}
-      {tasks.length === 0 ? renderNoTasksMessage() : tasks.map(renderTaskBox)}
-
-      {/* Add Task Button */}
-      <TouchableOpacity
-        style={styles.addTaskButton}
-        onPress={() => navigation.navigate("AddTaskScreen")}
-      >
-        <Text style={styles.addIcon}>+</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
+            {/* Add Task Button */}
+            <TouchableOpacity
+                style={{
+                    position: "absolute",
+                    bottom: 100,
+                    right: 20,
+                    backgroundColor: "#5063BF",
+                    borderRadius: 50,
+                    width: 50,
+                    height: 50,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 4,
+                    elevation: 5,
+                }}
+            >
+                <PlusCircle size={30} color="white" />
+            </TouchableOpacity>
+        </View>
+    );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFBF00", // Amber color
-    paddingTop: 20,
-    paddingHorizontal: 16,
-  },
-  header: {
-    fontSize: 24,
-    fontFamily: "Jomolhari",
-    color: "#000",
-    marginBottom: 20,
-  },
-  filterContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 20,
-  },
-  filterBox: {
-    width: 100,
-    height: 30,
-    backgroundColor: "#D9D9D9",
-    borderRadius: 5,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  filterText: {
-    fontSize: 16,
-    fontFamily: "Jomolhari",
-    color: "#000",
-  },
-  noTasksText: {
-    fontSize: 16,
-    fontFamily: "Jomolhari",
-    color: "gray",
-    textAlign: "center",
-    marginTop: 20,
-  },
-  addTaskButton: {
-    position: "absolute",
-    bottom: 45,
-    left: "50%",
-    transform: [{ translateX: -21 }],
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#4CAF50", // Green color for the button
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  addIcon: {
-    fontSize: 30,
-    color: "#fff",
-  },
-});
 
 export default TodolistScreen;
