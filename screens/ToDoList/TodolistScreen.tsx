@@ -8,6 +8,7 @@ import { PlusCircle } from "lucide-react-native";
 type RootStackParamList = {
     TodolistScreen: undefined;
     AddTaskScreen: undefined;
+    EditTaskScreen: { task: any };
 };
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "TodolistScreen">;
@@ -21,21 +22,10 @@ const TodolistScreen = () => {
         {
             date: "Monday 3 February 2025",
             tasks: [
-                { startTime: "1:00 PM", endTime: "3:00 PM", title: "Wash my clothes", icon: "🧂", color: "#C4C8F2" },
-                { startTime: "4:00 PM", endTime: "5:00 PM", title: "Clean my room", icon: "🧹", color: "#C4C8F2" },
-                { startTime: "7:00 PM", endTime: "8:00 PM", title: "Playing video games and watching movies with Nut", icon: "🎮", color: "#FFCDD2" },
+                { startTime: "1:00 PM", endTime: "3:00 PM", title: "Wash my clothes", icon: "🧂", color: "#C4C8F2", location: "Home", description: "Do laundry" },
+                { startTime: "4:00 PM", endTime: "5:00 PM", title: "Clean my room", icon: "🧹", color: "#C4C8F2", location: "Bedroom", description: "Organize and vacuum" },
+                { startTime: "7:00 PM", endTime: "8:00 PM", title: "Playing video games and watching movies with Nut", icon: "🎮", color: "#FFCDD2", location: "Living Room", description: "Relaxing time" },
             ],
-        },
-        {
-            date: "Tuesday 4 February 2025",
-            tasks: [
-                { startTime: "1:00 PM", endTime: "3:00 PM", title: "Wash my clothes", icon: "🧂", color: "#C4C8F2" },
-                { startTime: "7:00 PM", endTime: "8:00 PM", title: "Playing video games and watching movies with Nut", icon: "🎮", color: "#FFCDD2" },
-            ],
-        },
-        {
-            date: "Friday 6 February 2025",
-            tasks: [{ startTime: "1:00 PM", endTime: "3:00 PM", title: "Wash my clothes", icon: "🧂", color: "#C4C8F2" }],
         },
     ];
 
@@ -49,10 +39,7 @@ const TodolistScreen = () => {
                     <TouchableOpacity
                         key={option}
                         onPress={() => setFilter(option)}
-                        style={[
-                            styles.filterButton,
-                            { backgroundColor: filter === option ? "#5063BF" : "#D3D4E2" },
-                        ]}
+                        style={[styles.filterButton, { backgroundColor: filter === option ? "#5063BF" : "#D3D4E2" }]}
                     >
                         <Text style={{ color: filter === option ? "white" : "black", fontWeight: "bold" }}>{option}</Text>
                     </TouchableOpacity>
@@ -65,7 +52,11 @@ const TodolistScreen = () => {
                     <View key={index}>
                         <Text style={styles.sectionTitle}>{section.date}</Text>
                         {section.tasks.map((task, i) => (
-                            <View key={i} style={[styles.taskContainer, { backgroundColor: task.color }]}>
+                            <TouchableOpacity
+                                key={i}
+                                style={[styles.taskContainer, { backgroundColor: task.color }]}
+                                onPress={() => navigation.navigate("EditTaskScreen", { task })}
+                            >
                                 <View style={styles.taskTimeContainer}>
                                     <Text style={styles.taskTime}>{task.startTime}</Text>
                                     <View style={styles.separator} />
@@ -73,17 +64,14 @@ const TodolistScreen = () => {
                                 </View>
                                 <Text style={styles.taskTitle}>{task.title}</Text>
                                 <Text style={styles.taskIcon}>{task.icon}</Text>
-                            </View>
+                            </TouchableOpacity>
                         ))}
                     </View>
                 ))}
             </ScrollView>
 
             {/* Add Task Button */}
-            <TouchableOpacity
-                onPress={() => navigation.navigate("AddTaskScreen")}
-                style={styles.addButton}
-            >
+            <TouchableOpacity onPress={() => navigation.navigate("AddTaskScreen")} style={styles.addButton}>
                 <PlusCircle size={30} color="white" />
             </TouchableOpacity>
         </View>
@@ -92,7 +80,6 @@ const TodolistScreen = () => {
 
 export default TodolistScreen;
 
-// ✅ Extracted Styles for Clean Code
 const styles = StyleSheet.create({
     container: {
         flex: 1,

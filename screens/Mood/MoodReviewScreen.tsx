@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 
 // Define navigation type
 type RootStackParamList = {
-  MoodBoard: undefined;
+  MoodBoardScreen: undefined;
 };
 
 const emojiMap = [
@@ -18,7 +18,7 @@ const emojiMap = [
 ];
 
 const MoodReviewScreen = () => {
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList, "MoodBoard">>();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList, "MoodBoardScreen">>();
   const [rating, setRating] = useState(0);
   const [note, setNote] = useState("");
 
@@ -55,7 +55,7 @@ const MoodReviewScreen = () => {
       />
 
       {/* Save Button */}
-      <TouchableOpacity style={styles.saveButton}>
+      <TouchableOpacity style={styles.saveButton} onPress={() => navigation.navigate("MoodBoardScreen")}>
         <Ionicons name="save" size={20} color="#fff" />
         <Text style={styles.saveButtonText}>Save</Text>
       </TouchableOpacity>
