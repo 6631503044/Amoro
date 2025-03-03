@@ -70,10 +70,10 @@ const BottomNavigation = () => {
           tabBarShowLabel: false, // Hide text labels
           tabBarIcon: ({ color, focused }) => {
             let IconComponent: React.ElementType = HomeIcon; // Default icon
-
-            if (route.name === "Notifications") IconComponent = NotiIcon;
-            else if (route.name === "Mood") IconComponent = HeartIcon;
+            if (route.name === "Home") IconComponent = HomeIcon;
             else if (route.name === "To-Do") IconComponent = CorrectIcon;
+            else if (route.name === "Mood") IconComponent = HeartIcon;
+            else if (route.name === "Notifications") IconComponent = NotiIcon;
             else if (route.name === "Profile") IconComponent = ProfileIcon;
 
             return (
@@ -115,12 +115,14 @@ const BottomNavigation = () => {
         })}
       >
         <Tab.Screen name="Home" component={HomeScreen} />
-        <Tab.Screen name="Notifications" component={NotificationsNavigator} />
-        <Tab.Screen name="Mood" component={MoodNavigator} />
         <Tab.Screen name="To-Do" component={ToDoNavigator} />
+        <Tab.Screen name="Mood" component={MoodNavigator} />
+        <Tab.Screen name="Notifications" component={NotificationsNavigator} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
 };
+
+
 export default BottomNavigation;
