@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 
-interface MoodBoxSingleProps {
+interface MoodBoxCoupleProps {
   text: string;
   containerStyle?: ViewStyle;
   textStyle?: TextStyle;
@@ -9,7 +9,7 @@ interface MoodBoxSingleProps {
   emoji?: string;
 }
 
-const MoodBoxSingle: React.FC<MoodBoxSingleProps> = ({
+const MoodBoxCouple: React.FC<MoodBoxCoupleProps> = ({
   text,
   containerStyle,
   textStyle,
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MoodBoxSingle;
+export default MoodBoxCouple;
 
 // Usage Example:
 // <MoodBoxSingle text="สู้ๆ นะ ทำเป็น tsx ให้ละ เลิฟยู" />

@@ -1,14 +1,14 @@
 import React from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 
-interface TaskBoxSingleProps {
+interface TaskBoxCoupleProps {
   startTime?: string; // Expected format: "1:00 PM"
   endTime?: string;   // Expected format: "3:00 PM"
   taskText?: string;
   iconSource?: any; // Image source for the icon
 }
 
-const TaskBoxCouple: React.FC<TaskBoxSingleProps> = ({
+const TaskBoxCouple: React.FC<TaskBoxCoupleProps> = ({
   startTime = "1:00 PM",
   endTime = "3:00 PM",
   taskText = "Hello bruh",
