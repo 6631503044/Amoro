@@ -8,7 +8,7 @@ interface TaskBoxSingleProps {
   iconSource?: any; // Image source for the icon
 }
 
-const TaskBoxSingle: React.FC<TaskBoxSingleProps> = ({
+const TaskBoxCouple: React.FC<TaskBoxSingleProps> = ({
   startTime = "1:00 PM",
   endTime = "3:00 PM",
   taskText = "Hello bruh",
@@ -69,4 +69,4 @@ const styles = StyleSheet.create({
   });
   
 
-export default TaskBoxSingle;
+export default TaskBoxCouple;

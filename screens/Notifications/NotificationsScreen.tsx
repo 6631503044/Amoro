@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import NotificationBoxCouple from '../../components/NotificationBox/NotificationBoxCouple';
-import MeetIcon from '../../assets/icon.svg/meet';
-import PartyIcon from '../../assets/icon.svg/party';
-import WalkIcon from '../../assets/icon.svg/walk';
+import MeetIcon from '../../assets/icon/meet';
+import PartyIcon from '../../assets/icon/party';
+import WalkIcon from '../../assets/icon/walk';
 
 const notifications = [
   {

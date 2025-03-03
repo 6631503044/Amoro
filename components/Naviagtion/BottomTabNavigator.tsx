@@ -5,11 +5,11 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 
 // Import SVG Icons
-import HeartIcon from "../../assets/icon.svg/heart";
-import NotiIcon from "../../assets/icon.svg/noti";
-import HomeIcon from "../../assets/icon.svg/home";
-import CorrectIcon from "../../assets/icon.svg/correct";
-import ProfileIcon from "../../assets/icon.svg/profile";
+import HeartIcon from "../../assets/icon/heart";
+import NotiIcon from "../../assets/icon/noti";
+import HomeIcon from "../../assets/icon/home";
+import CorrectIcon from "../../assets/icon/correct";
+import ProfileIcon from "../../assets/icon/profile";
 
 // Import Screens
 import HomeScreen from "../../screens/Home/HomeScreen";
@@ -53,10 +53,10 @@ const MoodNavigator = () => (
 // ✅ Stack Navigator for To-Do List
 const ToDoNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="TodolistScreen" component={TodolistScreen} />
     <Stack.Screen name="AddTaskScreen" component={AddTaskScreen} />
     <Stack.Screen name="EditableDetailScreen" component={EditableDetailScreen} />
     <Stack.Screen name="EditTaskScreen" component={EditTaskScreen} />
-    <Stack.Screen name="TodolistScreen" component={TodolistScreen} />
   </Stack.Navigator>
 );
 
