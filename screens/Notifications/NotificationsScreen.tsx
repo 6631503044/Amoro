@@ -7,38 +7,38 @@ import WalkIcon from '../../assets/icon/walk';
 
 const notifications = [
   {
-    startTime: '1:00 PM',
-    endTime: '3:00 PM',
-    title: 'Meeting with the Sathu',
-    location: 'Location',
-    description: 'description..ww.',
+    "startTime": "4:00 PM",
+    "endTime": "6:00 PM",
+    "title": "Project Kickoff Meeting",
+    "location": "Conference Room A",
+    "description": "Discuss project goals, timelines, and assign tasks to team members.",
     iconSource: MeetIcon, // SVG Component
     color: '#FF969A',
   },
   {
-    startTime: '1:00 PM',
-    endTime: '3:00 PM',
-    title: 'Meeting with the black one',
-    location: 'Location',
-    description: 'description...',
-    iconSource: PartyIcon, // SVG Component
+      "startTime": "2:00 PM",
+      "endTime": "4:00 PM",
+      "title": "Client Presentation",
+      "location": "Client's Office",
+      "description": "Present the final design proposal to the client and gather feedback.",
+    iconSource: MeetIcon, // SVG Component
     color: '#FF969A',
   },
   {
-    startTime: '1:00 PM',
-    endTime: '3:00 PM',
-    title: 'Meeting with the black one',
-    location: 'Location',
-    description: 'description...',
+      "startTime": "10:00 AM",
+      "endTime": "11:00 AM",
+      "title": "Morning Briefing",
+      "location": "Main Office",
+      "description": "Briefing on the day's schedule, important updates, and announcements.",
     iconSource: WalkIcon, // SVG Component
     color: '#96B3FF',
   },
   {
-    startTime: '1:00 PM',
-    endTime: '3:00 PM',
-    title: 'Meeting with the black one',
-    location: 'Location',
-    description: 'description...',
+    "startTime": "8:00 AM",
+    "endTime": "10:00 PM",
+    "title": "Team Stand-up",
+    "location": "Virtual Meeting",
+    "description": "Daily stand-up to discuss progress, blockers, and next steps.",
     iconSource: PartyIcon, // SVG Component
     color: '#FF969A',
   },
