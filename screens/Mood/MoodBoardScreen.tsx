@@ -1,6 +1,15 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+
+// Define navigation type
+type RootStackParamList = {
+  MoodDetail: { title: string; location: string; time: string; emoji: string; color: string };
+};
+
+type MoodBoardScreenNavigationProp = StackNavigationProp<RootStackParamList, "MoodDetail">;
 
 // Sample Data
 const moods = [
@@ -12,41 +21,59 @@ const moods = [
 ];
 
 const MoodBoardScreen = () => {
+  const navigation = useNavigation<MoodBoardScreenNavigationProp>();
+
   return (
-      <View style={styles.container}>
-        {/* Header */}
-        <Text style={styles.header}>Review Dashboard</Text>
+    <View style={styles.container}>
+      {/* Header */}
+      <Text style={styles.header}>Review Dashboard</Text>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <TextInput style={styles.searchInput} placeholder="Search" placeholderTextColor="#999" />
-          <Ionicons name="search" size={20} color="#333" style={styles.searchIcon} />
-          <Ionicons name="person-circle" size={24} color="#333" style={styles.profileIcon} />
-        </View>
-
-        {/* Filter Tabs */}
-        <View style={styles.filterTabs}>
-          <TouchableOpacity style={[styles.filterButton, styles.activeFilter]}><Text style={styles.filterText}>Day</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton}><Text style={styles.filterText}>Week</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton}><Text style={styles.filterText}>Month</Text></TouchableOpacity>
-        </View>
-
-        {/* Mood List */}
-        <FlatList
-            data={moods}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-                <View style={[styles.moodCard, { backgroundColor: item.color }]}>
-                  <Text style={styles.moodEmoji}>{item.emoji}</Text>
-                  <View style={styles.moodDetails}>
-                    <Text style={styles.moodTitle}>{item.title}</Text>
-                    <Text style={styles.moodLocation}>{item.location}</Text>
-                    <Text style={styles.moodTime}>{item.time}</Text>
-                  </View>
-                </View>
-            )}
-        />
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <TextInput style={styles.searchInput} placeholder="Search" placeholderTextColor="#999" />
+        <Ionicons name="search" size={20} color="#333" style={styles.searchIcon} />
+        <Ionicons name="person-circle" size={24} color="#333" style={styles.profileIcon} />
       </View>
+
+      {/* Filter Tabs */}
+      <View style={styles.filterTabs}>
+        <TouchableOpacity style={[styles.filterButton, styles.activeFilter]}>
+          <Text style={styles.filterText}>Day</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.filterButton}>
+          <Text style={styles.filterText}>Week</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.filterButton}>
+          <Text style={styles.filterText}>Month</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Mood List */}
+      <FlatList
+        data={moods}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("MoodDetail", { 
+              title: item.title, 
+              location: item.location, 
+              time: item.time, 
+              emoji: item.emoji, 
+              color: item.color 
+            })}
+          >
+            <View style={[styles.moodCard, { backgroundColor: item.color }]}>
+              <Text style={styles.moodEmoji}>{item.emoji}</Text>
+              <View style={styles.moodDetails}>
+                <Text style={styles.moodTitle}>{item.title}</Text>
+                <Text style={styles.moodLocation}>{item.location}</Text>
+                <Text style={styles.moodTime}>{item.time}</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+    </View>
   );
 };
 
