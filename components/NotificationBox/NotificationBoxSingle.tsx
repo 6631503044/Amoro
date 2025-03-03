@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 
-interface NotificationBoxCoupleProps {
+interface NotificationBoxSingleProps {
   startTime?: string;
   endTime?: string;
   title?: string;
@@ -10,7 +10,7 @@ interface NotificationBoxCoupleProps {
   iconSource?: any;
 }
 
-const NotificationBoxCouple: React.FC<NotificationBoxCoupleProps> = ({
+const NotificationBoxSingle: React.FC<NotificationBoxSingleProps> = ({
   startTime = "1:00 PM",
   endTime = "3:00 PM",
   title = "Meeting with the Sathu",
@@ -94,4 +94,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default NotificationBoxCouple;
+export default NotificationBoxSingle;
