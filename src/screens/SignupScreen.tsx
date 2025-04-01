@@ -11,6 +11,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  Alert,
 } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
@@ -19,6 +20,8 @@ import { useAuth } from "../context/AuthContext"
 import Input from "../components/Input"
 import Button from "../components/Button"
 import SocialButton from "../components/SocialButton"
+import { createUserWithEmailAndPassword } from "firebase/auth"
+import { auth } from "../../firebaseConfig"
 
 // Add calendar constants
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -37,10 +40,13 @@ const MONTHS = [
   "December",
 ]
 
+// Backend API URL - replace with your actual API URL
+const API_URL = "https://your-backend-api-url.com"
+
 const SignupScreen = () => {
   const navigation = useNavigation()
   const { theme } = useTheme()
-  const { signUp, signInWithGoogle, signInWithApple, loading } = useAuth()
+  const { signInWithGoogle, signInWithApple, loading: authLoading } = useAuth()
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -56,6 +62,7 @@ const SignupScreen = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [selectedDay, setSelectedDay] = useState(new Date().getDate())
+  const [loading, setLoading] = useState(false)
 
   const [errors, setErrors] = useState({
     name: "",
@@ -98,7 +105,7 @@ const SignupScreen = () => {
   const handleDateSelection = (day: number) => {
     if (day) {
       const newDate = new Date(currentYear, currentMonth, day)
-      const formattedDate = newDate.toISOString().split('T')[0]
+      const formattedDate = newDate.toISOString().split("T")[0]
       setBirthday(formattedDate)
       setSelectedDay(day)
       setShowDatePicker(false)
@@ -127,6 +134,22 @@ const SignupScreen = () => {
     if (!dateString) return ""
     const date = new Date(dateString)
     return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
+  }
+
+  // Format date to DD/MM/YYYY for backend
+  const formatDateForBackend = (dateString: string) => {
+    if (!dateString) return ""
+    const date = new Date(dateString)
+    const day = date.getDate().toString().padStart(2, "0")
+    const month = (date.getMonth() + 1).toString().padStart(2, "0")
+    const year = date.getFullYear()
+    return `${day}/${month}/${year}`
+  }
+
+  // Parse hobbies string into array format instead of object
+  const parseHobbies = (hobbiesString: string) => {
+    if (!hobbiesString) return []
+    return hobbiesString.split(",").map((hobby) => hobby.trim())
   }
 
   const validateForm = () => {
@@ -196,14 +219,61 @@ const SignupScreen = () => {
     return valid
   }
 
+  // Function to create user in Firebase and send data to backend
   const handleSignUp = async () => {
-    if (validateForm()) {
-      try {
-        await signUp(email, password, name, username, birthday, hobbies, phone)
-      } catch (error) {
-        console.error("Sign up error:", error)
-        // Handle specific error cases here
+    if (!validateForm()) return
+
+    try {
+      setLoading(true)
+
+      // 1. Create user in Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      const user = userCredential.user
+      const uid = user.uid
+
+      // 2. Prepare user data for backend
+      const hobbiesObject = parseHobbies(hobbies)
+      const userData = {
+        uid: uid,
+        Data: {
+          email: email,
+          username: username,
+          Name: name,
+          Hobbies: hobbiesObject,
+          Birthdate: formatDateForBackend(birthday),
+          Phone: phone,
+        },
       }
+
+      // 3. Send user data to backend
+      const response = await fetch(`${API_URL}/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      })
+
+      if (response.status !== 201) {
+        throw new Error("Failed to create user data on the backend");
+    }
+    
+
+      // 4. Navigate to Main screen on success
+      Alert.alert("Account Created", "Your account has been created successfully. Please log in.", [
+        { text: "OK", onPress: () => navigation.navigate("Main" as never) },
+      ])
+    } catch (error) {
+      console.error("Sign up error:", error)
+
+      // Handle specific Firebase errors
+      if (error.code === "auth/email-already-in-use") {
+        Alert.alert("Error", "This email is already in use. Please use a different email or log in.")
+      } else {
+        Alert.alert("Error", "Failed to create account. Please try again.")
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -212,6 +282,7 @@ const SignupScreen = () => {
       await signInWithGoogle()
     } catch (error) {
       console.error("Google sign up error:", error)
+      Alert.alert("Error", "Failed to sign up with Google. Please try again.")
     }
   }
 
@@ -220,6 +291,7 @@ const SignupScreen = () => {
       await signInWithApple()
     } catch (error) {
       console.error("Apple sign up error:", error)
+      Alert.alert("Error", "Failed to sign up with Apple. Please try again.")
     }
   }
 
@@ -269,7 +341,7 @@ const SignupScreen = () => {
             <TouchableOpacity
               style={[
                 styles.inputContainer,
-                { 
+                {
                   borderColor: errors.birthday ? "red" : theme.colors.border,
                   backgroundColor: theme.colors.card,
                 },

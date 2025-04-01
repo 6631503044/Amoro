@@ -103,7 +103,7 @@ const HomeScreen = () => {
     navigation.navigate("ShowTask", { activityId })
   }
 
-  // Calendar theme configuration
+  // Update the calendarTheme object to better follow the theme system
   const calendarTheme = {
     calendarBackground: theme.colors.card,
     textSectionTitleColor: theme.colors.text,
@@ -123,14 +123,56 @@ const HomeScreen = () => {
     textDayFontSize: 14,
     textMonthFontSize: 16,
     textDayHeaderFontSize: 14,
-    'stylesheet.calendar.header': {
-      dayHeader: {
-        color: theme.colors.text,
+    "stylesheet.day.basic": {
+      base: {
+        width: 32,
+        height: 32,
+        alignItems: "center",
+        justifyContent: "center",
+      },
+      today: {
+        backgroundColor: `${theme.colors.primary}20`,
+        borderRadius: 16,
+      },
+      todayText: {
+        color: theme.colors.primary,
+        fontWeight: "bold",
       },
     },
-    'stylesheet.calendar.main': {
-      dayContainer: {
-        backgroundColor: theme.colors.card,
+    "stylesheet.calendar.header": {
+      header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingLeft: 10,
+        paddingRight: 10,
+        marginTop: 6,
+        alignItems: "center",
+      },
+      monthText: {
+        color: theme.colors.text,
+        fontSize: 16,
+        fontFamily: "Poppins-SemiBold",
+      },
+      arrow: {
+        padding: 10,
+      },
+      dayHeader: {
+        marginTop: 2,
+        marginBottom: 7,
+        width: 32,
+        textAlign: "center",
+        fontSize: 14,
+        fontFamily: "Poppins-Medium",
+        color: theme.colors.secondaryText,
+      },
+    },
+    "stylesheet.dot": {
+      dot: {
+        width: 6,
+        height: 6,
+        marginTop: 1,
+        marginHorizontal: 1,
+        borderRadius: 3,
       },
     },
   }
@@ -143,12 +185,20 @@ const HomeScreen = () => {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <Calendar
+          key={`calendar-${theme.mode}`} // Add this key prop to force re-render on theme change
           theme={calendarTheme}
           markingType={"multi-dot"}
           markedDates={getMarkedDates()}
           onDayPress={(day) => setSelectedDate(day.dateString)}
           enableSwipeMonths={true}
-          style={[styles.calendar, { backgroundColor: theme.colors.card }]}
+          style={[
+            styles.calendar,
+            {
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.border,
+              borderWidth: 1,
+            },
+          ]}
         />
 
         <View style={styles.dateSection}>
@@ -216,6 +266,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     marginBottom: 15,
+    overflow: "hidden",
   },
   dateSection: {
     paddingHorizontal: 20,
