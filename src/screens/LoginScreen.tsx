@@ -11,6 +11,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
@@ -22,12 +23,14 @@ import SocialButton from "../components/SocialButton"
 // Import the RootStackParamList type
 import type { RootStackParamList } from "../navigation/RootNavigator"
 import type { StackNavigationProp } from "@react-navigation/stack"
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebaseConfig";
 
 const LoginScreen = () => {
   // Then use this type for navigation
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>()
   const { theme } = useTheme()
-  const { signIn, signInWithGoogle, signInWithApple, loading } = useAuth()
+  const { signIn, signInWithGoogle, signInWithApple, loading, setLoading } = useAuth()
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -61,10 +64,43 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     if (validateForm()) {
       try {
+        setLoading(true)
+
+        // Use Firebase Authentication to sign in
+        const { signInWithEmailAndPassword } = require("firebase/auth")
+        const { auth } = require("../../firebaseConfig")
+
+        const userCredential = await signInWithEmailAndPassword(auth, email, password)
+        const user = userCredential.user
+
+        // Get the UID from Firebase
+        const uid = user.uid
+        console.log("Login successful, UID:", uid)
+
+        // In a real app, you might want to fetch additional user data from your backend here
+        // using the UID
+
+        // Use the signIn function from AuthContext to update the app state
         await signIn(email, password)
+
+        // Navigation to home page is handled by the AuthContext
+        // The RootNavigator will automatically redirect to MainTabs when user is set
       } catch (error) {
         console.error("Login error:", error)
-        // Handle specific error cases here
+
+        // Clear password field
+        setPassword("")
+
+        // Handle specific Firebase error codes
+        if (error.code === "auth/invalid-credential" || error.code === "auth/user-not-found") {
+          Alert.alert("Login Failed", "Invalid email or password. Please try again.")
+        } else if (error.code === "auth/too-many-requests") {
+          Alert.alert("Login Failed", "Too many failed login attempts. Please try again later.")
+        } else {
+          Alert.alert("Login Error", "An error occurred during login. Please try again.")
+        }
+      } finally {
+        setLoading(false)
       }
     }
   }
