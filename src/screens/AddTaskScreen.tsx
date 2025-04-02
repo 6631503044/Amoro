@@ -309,8 +309,13 @@ const AddTaskScreen = () => {
             onChangeText={setDescription}
             placeholder="Enter activity description"
             multiline
-            numberOfLines={3}
-            style={{ textAlignVertical: "top", paddingTop: 15 }}
+            numberOfLines={2}
+            style={[
+              styles.descriptionInput,
+              { color: theme.colors.text }
+            ]}
+            placeholderTextColor={theme.colors.secondaryText}
+            textAlignVertical="center"
           />
 
           <TouchableOpacity
@@ -863,6 +868,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Poppins-Regular",
     textAlign: "center",
+  },
+  descriptionInput: {
+    textAlignVertical: "center",
+    paddingTop: 0,
+    height: 80, // Height for 2 lines of text
+    lineHeight: 20, // Line height for better readability
   },
 })
 

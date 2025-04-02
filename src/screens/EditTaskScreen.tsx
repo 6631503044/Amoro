@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Animated,
+  Modal,
 } from "react-native"
 import { useNavigation, useRoute } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
@@ -74,7 +76,7 @@ const EditTaskScreen = () => {
   const [date, setDate] = useState(new Date(activity.date))
   const [startTime, setStartTime] = useState(new Date(`2023-01-01T${activity.startTime}`))
   const [endTime, setEndTime] = useState(new Date(`2023-01-01T${activity.endTime}`))
-  const [selectedTag, setSelectedTag] = useState(activity.tag)
+  const [selectedTag, setSelectedTag] = useState<string | null>(activity.tag || null)
   const [notificationTime, setNotificationTime] = useState(activity.notification)
   const [showAllTags, setShowAllTags] = useState(false)
 
@@ -83,6 +85,105 @@ const EditTaskScreen = () => {
   const [showStartTimePicker, setShowStartTimePicker] = useState(false)
   const [showEndTimePicker, setShowEndTimePicker] = useState(false)
   const [showNotificationOptions, setShowNotificationOptions] = useState(false)
+
+  // Time picker state
+  const [selectedHours, setSelectedHours] = useState(startTime.getHours())
+  const [selectedMinutes, setSelectedMinutes] = useState(startTime.getMinutes())
+  const [isStartTime, setIsStartTime] = useState(true)
+
+  const scrollViewRef = useRef<ScrollView>(null)
+  const [scrollPosition, setScrollPosition] = useState(0)
+  const [scrollViewWidth, setScrollViewWidth] = useState(0)
+  const [contentWidth, setContentWidth] = useState(0)
+  const fadeAnim = useRef(new Animated.Value(1)).current
+
+  // Pulse animation for scroll indicator
+  useEffect(() => {
+    const pulseAnimation = Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 0.5,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+    ])
+
+    Animated.loop(pulseAnimation).start()
+
+    return () => {
+      fadeAnim.stopAnimation()
+    }
+  }, [fadeAnim])
+
+  // Handle date change from calendar picker
+  const handleDateChange = (newDate: Date) => {
+    setDate(newDate)
+  }
+
+  // Handle scroll events for the tags ScrollView
+  const handleTagsScroll = (event: { nativeEvent: { contentOffset: { x: number }, layoutMeasurement: { width: number }, contentSize: { width: number } } }) => {
+    const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent
+    setScrollPosition(contentOffset.x)
+    setScrollViewWidth(layoutMeasurement.width)
+    setContentWidth(contentSize.width)
+  }
+
+  // Calculate if we can scroll more to the right
+  const canScrollRight = contentWidth > scrollViewWidth && scrollPosition < contentWidth - scrollViewWidth
+
+  // Scroll to a specific section based on dot index
+  const scrollToSection = (dotIndex: number) => {
+    if (scrollViewRef.current && contentWidth > scrollViewWidth) {
+      const sectionWidth = (contentWidth - scrollViewWidth) / 2
+      let targetX = 0
+
+      if (dotIndex === 1) {
+        targetX = sectionWidth
+      } else if (dotIndex === 2) {
+        targetX = contentWidth - scrollViewWidth
+      }
+
+      scrollViewRef.current.scrollTo({ x: targetX, animated: true })
+    }
+  }
+
+  // Scroll to the next section
+  const scrollToNextSection = () => {
+    if (scrollViewRef.current && contentWidth > scrollViewWidth) {
+      const sectionWidth = (contentWidth - scrollViewWidth) / 2
+
+      // Determine which section we're currently in
+      let targetX = 0
+      if (scrollPosition < sectionWidth / 2) {
+        // We're in the first section, scroll to second
+        targetX = sectionWidth
+      } else if (scrollPosition < sectionWidth * 1.5) {
+        // We're in the second section, scroll to third
+        targetX = contentWidth - scrollViewWidth
+      } else {
+        // We're already at the end, loop back to start
+        targetX = 0
+      }
+
+      scrollViewRef.current.scrollTo({ x: targetX, animated: true })
+    }
+  }
+
+  // Get current active dot index based on scroll position
+  const getActiveDotIndex = () => {
+    if (contentWidth <= scrollViewWidth) return 0
+
+    const sectionWidth = (contentWidth - scrollViewWidth) / 2
+    if (scrollPosition < sectionWidth / 2) return 0
+    if (scrollPosition < sectionWidth * 1.5) return 1
+    return 2
+  }
+
+  const activeDotIndex = getActiveDotIndex()
 
   const handleSave = () => {
     // Here you would save the activity to your data store
@@ -126,9 +227,48 @@ const EditTaskScreen = () => {
   // Get visible tags (first 6 if not showing all)
   const visibleTags = showAllTags ? TAGS : TAGS.slice(0, 6)
 
-  // Handle date change from calendar picker
-  const handleDateChange = (newDate) => {
-    setDate(newDate)
+  // Generate hours for time picker
+  const generateHours = () => {
+    const hours = []
+    for (let i = 0; i < 24; i++) {
+      const displayHour = i % 12 || 12
+      const ampm = i >= 12 ? "PM" : "AM"
+      hours.push({ value: i, display: `${displayHour} ${ampm}` })
+    }
+    return hours
+  }
+
+  // Generate minutes for time picker
+  const generateMinutes = () => {
+    const minutes = []
+    for (let i = 0; i < 60; i += 5) {
+      minutes.push({ value: i, display: i.toString().padStart(2, "0") })
+    }
+    return minutes
+  }
+
+  // Handle time selection
+  const handleTimeSelection = (hours: number, minutes: number) => {
+    const newTime = new Date(isStartTime ? startTime : endTime)
+    newTime.setHours(hours)
+    newTime.setMinutes(minutes)
+
+    if (isStartTime) {
+      setStartTime(newTime)
+
+      // Ensure end time is after start time
+      if (newTime > endTime) {
+        const newEndTime = new Date(newTime)
+        newEndTime.setHours(newTime.getHours() + 1)
+        setEndTime(newEndTime)
+      }
+    } else {
+      // Ensure end time is after start time
+      if (newTime < startTime) {
+        newTime.setDate(newTime.getDate() + 1)
+      }
+      setEndTime(newTime)
+    }
   }
 
   return (
@@ -161,8 +301,13 @@ const EditTaskScreen = () => {
             onChangeText={setDescription}
             placeholder="Enter activity description"
             multiline
-            numberOfLines={3}
-            style={{ textAlignVertical: "top", paddingTop: 15 }}
+            numberOfLines={2}
+            style={[
+              styles.descriptionInput,
+              { color: theme.colors.text }
+            ]}
+            placeholderTextColor={theme.colors.secondaryText}
+            textAlignVertical="center"
           />
 
           <TouchableOpacity
@@ -196,7 +341,12 @@ const EditTaskScreen = () => {
           <View style={styles.timeSelectionRow}>
             <TouchableOpacity
               style={[styles.timeSelector, { borderColor: theme.colors.border }]}
-              onPress={() => setShowStartTimePicker(true)}
+              onPress={() => {
+                setIsStartTime(true)
+                setSelectedHours(startTime.getHours())
+                setSelectedMinutes(startTime.getMinutes())
+                setShowStartTimePicker(true)
+              }}
             >
               <Text style={[styles.timeSelectorLabel, { color: theme.colors.text }]}>Start Time</Text>
               <View style={styles.timeValue}>
@@ -207,7 +357,12 @@ const EditTaskScreen = () => {
 
             <TouchableOpacity
               style={[styles.timeSelector, { borderColor: theme.colors.border }]}
-              onPress={() => setShowEndTimePicker(true)}
+              onPress={() => {
+                setIsStartTime(false)
+                setSelectedHours(endTime.getHours())
+                setSelectedMinutes(endTime.getMinutes())
+                setShowEndTimePicker(true)
+              }}
             >
               <Text style={[styles.timeSelectorLabel, { color: theme.colors.text }]}>End Time</Text>
               <View style={styles.timeValue}>
@@ -217,98 +372,182 @@ const EditTaskScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {showStartTimePicker && (
+          <Modal
+            visible={showStartTimePicker || showEndTimePicker}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => {
+              setShowStartTimePicker(false)
+              setShowEndTimePicker(false)
+            }}
+          >
             <View style={styles.datePickerContainer}>
-              <TouchableOpacity style={styles.datePickerBackdrop} onPress={() => setShowStartTimePicker(false)} />
+              <TouchableOpacity
+                style={styles.datePickerBackdrop}
+                onPress={() => {
+                  setShowStartTimePicker(false)
+                  setShowEndTimePicker(false)
+                }}
+              />
               <View style={[styles.datePickerContent, { backgroundColor: theme.colors.card }]}>
-                <Text style={[styles.datePickerTitle, { color: theme.colors.text }]}>Select Start Time</Text>
-                <input
-                  type="time"
-                  value={`${startTime.getHours().toString().padStart(2, "0")}:${startTime.getMinutes().toString().padStart(2, "0")}`}
-                  onChange={(e) => {
-                    const [hours, minutes] = e.target.value.split(":").map(Number)
-                    const newTime = new Date(startTime)
-                    newTime.setHours(hours)
-                    newTime.setMinutes(minutes)
-                    setStartTime(newTime)
+                <Text style={[styles.datePickerTitle, { color: theme.colors.text }]}>
+                  {isStartTime ? "Select Start Time" : "Select End Time"}
+                </Text>
 
-                    // Ensure end time is after start time
-                    if (newTime > endTime) {
-                      const newEndTime = new Date(newTime)
-                      newEndTime.setHours(newTime.getHours() + 1)
-                      setEndTime(newEndTime)
-                    }
+                <View style={styles.timePickerContainer}>
+                  {/* Hours */}
+                  <View style={styles.timePickerColumn}>
+                    <Text style={[styles.timePickerLabel, { color: theme.colors.secondaryText }]}>Hour</Text>
+                    <ScrollView style={styles.timePickerScroll}>
+                      {generateHours().map((hour, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          style={[
+                            styles.timePickerItem,
+                            selectedHours === hour.value && {
+                              backgroundColor: `${theme.colors.primary}20`,
+                            },
+                          ]}
+                          onPress={() => setSelectedHours(hour.value)}
+                        >
+                          <Text
+                            style={[
+                              styles.timePickerItemText,
+                              { color: theme.colors.text },
+                              selectedHours === hour.value && {
+                                color: theme.colors.primary,
+                                fontFamily: "Poppins-SemiBold",
+                              },
+                            ]}
+                          >
+                            {hour.display}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
 
-                    setShowStartTimePicker(false)
-                  }}
-                  style={{
-                    fontSize: 16,
-                    padding: 10,
-                    borderRadius: 8,
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: theme.colors.background,
-                    color: theme.colors.text,
-                    width: "100%",
-                    marginBottom: 10,
-                  }}
-                />
+                  {/* Minutes */}
+                  <View style={styles.timePickerColumn}>
+                    <Text style={[styles.timePickerLabel, { color: theme.colors.secondaryText }]}>Minute</Text>
+                    <ScrollView style={styles.timePickerScroll}>
+                      {generateMinutes().map((minute, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          style={[
+                            styles.timePickerItem,
+                            selectedMinutes === minute.value && {
+                              backgroundColor: `${theme.colors.primary}20`,
+                            },
+                          ]}
+                          onPress={() => setSelectedMinutes(minute.value)}
+                        >
+                          <Text
+                            style={[
+                              styles.timePickerItemText,
+                              { color: theme.colors.text },
+                              selectedMinutes === minute.value && {
+                                color: theme.colors.primary,
+                                fontFamily: "Poppins-SemiBold",
+                              },
+                            ]}
+                          >
+                            {minute.display}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
+
                 <TouchableOpacity
                   style={[styles.datePickerButton, { backgroundColor: theme.colors.primary }]}
-                  onPress={() => setShowStartTimePicker(false)}
-                >
-                  <Text style={styles.datePickerButtonText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {showEndTimePicker && (
-            <View style={styles.datePickerContainer}>
-              <TouchableOpacity style={styles.datePickerBackdrop} onPress={() => setShowEndTimePicker(false)} />
-              <View style={[styles.datePickerContent, { backgroundColor: theme.colors.card }]}>
-                <Text style={[styles.datePickerTitle, { color: theme.colors.text }]}>Select End Time</Text>
-                <input
-                  type="time"
-                  value={`${endTime.getHours().toString().padStart(2, "0")}:${endTime.getMinutes().toString().padStart(2, "0")}`}
-                  onChange={(e) => {
-                    const [hours, minutes] = e.target.value.split(":").map(Number)
-                    const newTime = new Date(endTime)
-                    newTime.setHours(hours)
-                    newTime.setMinutes(minutes)
-                    setEndTime(newTime)
+                  onPress={() => {
+                    handleTimeSelection(selectedHours, selectedMinutes)
+                    setShowStartTimePicker(false)
                     setShowEndTimePicker(false)
                   }}
-                  style={{
-                    fontSize: 16,
-                    padding: 10,
-                    borderRadius: 8,
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: theme.colors.background,
-                    color: theme.colors.text,
-                    width: "100%",
-                    marginBottom: 10,
-                  }}
-                />
-                <TouchableOpacity
-                  style={[styles.datePickerButton, { backgroundColor: theme.colors.primary }]}
-                  onPress={() => setShowEndTimePicker(false)}
                 >
                   <Text style={styles.datePickerButtonText}>Done</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          )}
+          </Modal>
 
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Add Tag</Text>
 
-          <View>
-            <TagSelector tags={visibleTags} selectedTagId={selectedTag} onSelectTag={setSelectedTag} />
+          <View style={styles.tagsContainer}>
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              onScroll={handleTagsScroll}
+              scrollEventThrottle={16}
+              style={styles.tagsScrollView}
+              contentContainerStyle={styles.tagsScrollViewContent}
+            >
+              {TAGS.map((tag) => (
+                <TouchableOpacity
+                  key={tag.id}
+                  style={[
+                    styles.tagItem,
+                    { borderColor: theme.colors.border },
+                    selectedTag === tag.id && {
+                      backgroundColor: `${theme.colors.primary}20`,
+                      borderColor: theme.colors.primary,
+                    },
+                  ]}
+                  onPress={() => setSelectedTag(tag.id === selectedTag ? null : tag.id)}
+                >
+                  <Text style={styles.tagEmoji}>{tag.emoji}</Text>
+                  <Text
+                    style={[
+                      styles.tagName,
+                      { color: theme.colors.text },
+                      selectedTag === tag.id && { color: theme.colors.primary },
+                    ]}
+                  >
+                    {tag.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-            {!showAllTags && (
-              <TouchableOpacity style={styles.showMoreTags} onPress={() => setShowAllTags(true)}>
-                <Text style={[styles.showMoreTagsText, { color: theme.colors.primary }]}>เพิ่มเติม</Text>
-                <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+            {/* Clickable scroll indicator arrow */}
+            {canScrollRight && (
+              <TouchableOpacity onPress={scrollToNextSection} activeOpacity={0.7} style={styles.scrollIndicatorButton}>
+                <Animated.View
+                  style={[styles.scrollIndicator, { opacity: fadeAnim, backgroundColor: theme.colors.primary }]}
+                >
+                  <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
+                </Animated.View>
               </TouchableOpacity>
+            )}
+
+            {/* Clickable scroll progress dots */}
+            {contentWidth > scrollViewWidth && (
+              <View style={styles.scrollProgressContainer}>
+                <View style={styles.scrollProgressDots}>
+                  {[0, 1, 2].map((dotIndex) => (
+                    <TouchableOpacity
+                      key={dotIndex}
+                      onPress={() => scrollToSection(dotIndex)}
+                      style={styles.scrollDotTouchable}
+                    >
+                      <View
+                        style={[
+                          styles.scrollProgressDot,
+                          {
+                            backgroundColor: activeDotIndex === dotIndex ? theme.colors.primary : theme.colors.border,
+                            width: activeDotIndex === dotIndex ? 10 : 6,
+                            height: activeDotIndex === dotIndex ? 6 : 6,
+                          },
+                        ]}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             )}
           </View>
 
@@ -524,17 +763,105 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins-Medium",
   },
-  showMoreTags: {
+  tagsContainer: {
+    position: "relative",
+    marginBottom: 20,
+  },
+  tagsScrollView: {
+    flexGrow: 0,
+  },
+  tagsScrollViewContent: {
+    paddingRight: 40, // Space for the scroll indicator
+  },
+  tagItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
-    paddingVertical: 10,
-    marginBottom: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 10,
+    marginBottom: 10,
+    borderRadius: 20,
+    borderWidth: 1,
   },
-  showMoreTagsText: {
+  tagEmoji: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  tagName: {
     fontSize: 14,
     fontFamily: "Poppins-Medium",
-    marginRight: 5,
+  },
+  scrollIndicatorButton: {
+    position: "absolute",
+    right: 0,
+    top: "50%",
+    transform: [{ translateY: -12 }],
+    width: 30,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  scrollIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  scrollProgressContainer: {
+    alignItems: "center",
+    marginTop: 8,
+  },
+  scrollProgressDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollDotTouchable: {
+    padding: 8, // Larger touch target
+    marginHorizontal: 2,
+  },
+  scrollProgressDot: {
+    borderRadius: 3,
+    marginHorizontal: 1,
+  },
+  timePickerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  timePickerColumn: {
+    width: "48%",
+  },
+  timePickerLabel: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  timePickerScroll: {
+    height: 200,
+  },
+  timePickerItem: {
+    padding: 10,
+    borderRadius: 8,
+  },
+  timePickerItemText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
+  },
+  descriptionInput: {
+    textAlignVertical: "center",
+    paddingTop: 0,
+    height: 80, // Height for 2 lines of text
+    lineHeight: 20, // Line height for better readability
   },
 })
 

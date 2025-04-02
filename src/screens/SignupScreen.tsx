@@ -107,7 +107,8 @@ const SignupScreen = () => {
 
   const handleDateSelection = (day: number) => {
     if (day) {
-      const newDate = new Date(currentYear, currentMonth, day)
+      // Create date in Bangkok timezone (UTC+7)
+      const newDate = new Date(Date.UTC(currentYear, currentMonth, day, 7, 0, 0))
       const formattedDate = newDate.toISOString().split("T")[0]
       setBirthday(formattedDate)
       setSelectedDay(day)
@@ -136,16 +137,20 @@ const SignupScreen = () => {
   const formatDate = (dateString: string) => {
     if (!dateString) return ""
     const date = new Date(dateString)
-    return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
+    // Adjust for Bangkok timezone
+    const bangkokDate = new Date(date.getTime() + (7 * 60 * 60 * 1000))
+    return `${MONTHS[bangkokDate.getMonth()]} ${bangkokDate.getDate()}, ${bangkokDate.getFullYear()}`
   }
 
   // Format date to DD/MM/YYYY for backend
   const formatDateForBackend = (dateString: string) => {
     if (!dateString) return ""
     const date = new Date(dateString)
-    const day = date.getDate().toString().padStart(2, "0")
-    const month = (date.getMonth() + 1).toString().padStart(2, "0")
-    const year = date.getFullYear()
+    // Adjust for Bangkok timezone
+    const bangkokDate = new Date(date.getTime() + (7 * 60 * 60 * 1000))
+    const day = bangkokDate.getDate().toString().padStart(2, "0")
+    const month = (bangkokDate.getMonth() + 1).toString().padStart(2, "0")
+    const year = bangkokDate.getFullYear()
     return `${day}/${month}/${year}`
   }
 
@@ -784,7 +789,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   calendarDayOfWeek: {
-    width: 35,
+    width: "14.28%",
     textAlign: "center",
     fontSize: 12,
     fontFamily: "Poppins-Medium",
@@ -795,8 +800,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   calendarDay: {
-    width: 35,
-    height: 35,
+    width: "14.28%",
+    aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 5,
