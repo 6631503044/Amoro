@@ -316,6 +316,7 @@ const AddTaskScreen = () => {
             ]}
             placeholderTextColor={theme.colors.secondaryText}
             textAlignVertical="center"
+            textAlign="left"
           />
 
           <TouchableOpacity
@@ -874,6 +875,8 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     height: 80, // Height for 2 lines of text
     lineHeight: 20, // Line height for better readability
+    paddingLeft: 15, // Match the title input's left padding
+    paddingBottom: 0, // Reduced padding to move text lower
   },
 })
 
