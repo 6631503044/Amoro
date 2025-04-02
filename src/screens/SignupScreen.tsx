@@ -260,7 +260,7 @@ const SignupScreen = () => {
     
 
       // 4. Navigate to Main screen on success
-      Alert.alert("Account Created", "Your account has been created successfully. Please log in.", [
+      Alert.alert("Account Created", "Your account has been created successfully.", [
         { text: "OK", onPress: () => navigation.navigate("Main" as never) },
       ])
     } catch (error) {

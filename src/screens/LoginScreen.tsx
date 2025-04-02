@@ -76,15 +76,8 @@ const LoginScreen = () => {
         // Get the UID from Firebase
         const uid = user.uid
         console.log("Login successful, UID:", uid)
-
-        // In a real app, you might want to fetch additional user data from your backend here
-        // using the UID
-
-        // Use the signIn function from AuthContext to update the app state
-        await signIn(email, password)
-
-        // Navigation to home page is handled by the AuthContext
-        // The RootNavigator will automatically redirect to MainTabs when user is set
+        navigation.navigate("Main" as never) 
+        
       } catch (error) {
         console.error("Login error:", error)
 
@@ -102,7 +95,7 @@ const LoginScreen = () => {
       } finally {
         setLoading(false)
       }
-    }
+    }  
   }
 
   const handleGoogleLogin = async () => {
