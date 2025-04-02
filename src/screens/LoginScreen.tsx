@@ -23,14 +23,14 @@ import SocialButton from "../components/SocialButton"
 // Import the RootStackParamList type
 import type { RootStackParamList } from "../navigation/RootNavigator"
 import type { StackNavigationProp } from "@react-navigation/stack"
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 const LoginScreen = () => {
   // Then use this type for navigation
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>()
   const { theme } = useTheme()
-  const { signIn, signInWithGoogle, signInWithApple, loading, setLoading } = useAuth()
+  const { signIn, signInWithGoogle, signInWithApple } = useAuth()
+  const [loading, setLoading] = useState(false)
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -76,8 +76,19 @@ const LoginScreen = () => {
         // Get the UID from Firebase
         const uid = user.uid
         console.log("Login successful, UID:", uid)
-        navigation.navigate("Main" as never) 
-        
+        // Create a simple user object with just the essential information
+        const userObject = {
+          id: uid,
+          email: email,
+          displayName: "User", // You might want to fetch the actual user data from your backend
+          photoURL: "https://via.placeholder.com/150",
+        }
+
+        // Store the user in AsyncStorage to trigger auth state change
+        await AsyncStorage.setItem("user", JSON.stringify(userObject))
+
+        // The RootNavigator will automatically redirect to Main screen
+        // because the user is now stored in AsyncStorage
       } catch (error) {
         console.error("Login error:", error)
 
@@ -95,7 +106,7 @@ const LoginScreen = () => {
       } finally {
         setLoading(false)
       }
-    }  
+    }
   }
 
   const handleGoogleLogin = async () => {

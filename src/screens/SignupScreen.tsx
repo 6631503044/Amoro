@@ -22,6 +22,7 @@ import Button from "../components/Button"
 import SocialButton from "../components/SocialButton"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { auth } from "../../firebaseConfig"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Add calendar constants
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -219,7 +220,7 @@ const SignupScreen = () => {
     return valid
   }
 
-  // Function to create user in Firebase and send data to backend
+  // Replace the handleSignUp function with this updated version
   const handleSignUp = async () => {
     if (!validateForm()) return
 
@@ -245,6 +246,7 @@ const SignupScreen = () => {
         },
       }
       console.log(userData)
+
       // 3. Send user data to backend
       const response = await fetch(`${API_URL}/users`, {
         method: "POST",
@@ -253,15 +255,35 @@ const SignupScreen = () => {
         },
         body: JSON.stringify(userData),
       })
-     
-      if (response.status !== 201) {
-        throw new Error("Failed to create user data on the backend");
-    }
-    
 
-      // 4. Navigate to Main screen on success
+      if (response.status !== 201) {
+        throw new Error("Failed to create user data on the backend")
+      }
+
+      // 4. Create a user object to store in AsyncStorage
+      const userObject = {
+        id: uid,
+        email: email,
+        displayName: name,
+        username: username,
+        birthday: birthday,
+        hobbies: hobbies,
+        phone: phone,
+        photoURL: "https://via.placeholder.com/150",
+      }
+
+      // 5. Store the user in AsyncStorage to trigger auth state change
+      await AsyncStorage.setItem("user", JSON.stringify(userObject))
+
+      // 6. Show success alert
       Alert.alert("Account Created", "Your account has been created successfully.", [
-        { text: "OK", onPress: () => navigation.navigate("Main" as never) },
+        {
+          text: "OK",
+          onPress: () => {
+            // The RootNavigator will automatically redirect to Main screen
+            // because the user is now stored in AsyncStorage
+          },
+        },
       ])
     } catch (error) {
       console.error("Sign up error:", error)

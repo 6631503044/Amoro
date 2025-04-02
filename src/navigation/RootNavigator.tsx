@@ -17,6 +17,8 @@ import ResetPasswordEmailScreen from "../screens/ResetPasswordEmailScreen"
 import PermissionsScreen from "../screens/PermissionsScreen"
 import AmoroIntroScreen from "../screens/AmoroIntroScreen"
 import AddPartnerScreen from "../screens/AddPartnerScreen"
+import { useState, useEffect } from "react"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Define the RootStackParamList to properly type the navigation
 export type RootStackParamList = {
@@ -41,13 +43,39 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>()
 
 const RootNavigator = () => {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+  const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const checkFirstLaunch = async () => {
+      try {
+        const hasLaunched = await AsyncStorage.getItem("hasLaunched")
+        if (hasLaunched === null) {
+          // First time launching the app
+          await AsyncStorage.setItem("hasLaunched", "true")
+          setIsFirstLaunch(true)
+        } else {
+          setIsFirstLaunch(false)
+        }
+      } catch (error) {
+        console.error("Error checking first launch:", error)
+        setIsFirstLaunch(false)
+      }
+    }
+
+    checkFirstLaunch()
+  }, [])
+
+  // Show loading screen while checking authentication and first launch status
+  if (loading || isFirstLaunch === null) {
+    return null // You could return a loading screen here
+  }
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
         <>
-          <Stack.Screen name="AmoroIntro" component={AmoroIntroScreen} />
+          {isFirstLaunch && <Stack.Screen name="AmoroIntro" component={AmoroIntroScreen} />}
           <Stack.Screen name="Auth" component={AuthStack} />
         </>
       ) : (

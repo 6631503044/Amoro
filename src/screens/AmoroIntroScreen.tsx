@@ -51,17 +51,24 @@ const AmoroIntroScreen = () => {
     )
   }
 
+  const handleSkip = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Auth" }],
+    })
+  }
+
   const handleNext = () => {
     if (currentIndex < introSlides.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true })
       setCurrentIndex(currentIndex + 1)
     } else {
-      navigation.navigate("Auth" as never)
+      // Navigate to Auth screen and reset navigation stack
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Auth" }],
+      })
     }
-  }
-
-  const handleSkip = () => {
-    navigation.navigate("Auth" as never)
   }
 
   return (
@@ -163,3 +170,4 @@ const styles = StyleSheet.create({
 })
 
 export default AmoroIntroScreen
+

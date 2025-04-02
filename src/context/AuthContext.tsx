@@ -66,14 +66,36 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         if (storedUser) {
           setUser(JSON.parse(storedUser))
         }
+
+        // We'll finish loading regardless of whether a user was found
+        setLoading(false)
       } catch (error) {
         console.error("Failed to load user:", error)
-      } finally {
         setLoading(false)
       }
     }
 
     loadUser()
+
+    // Set up a listener for changes to the user in AsyncStorage
+    const handleStorageChange = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("user")
+        if (storedUser) {
+          setUser(JSON.parse(storedUser))
+        } else {
+          setUser(null)
+        }
+      } catch (error) {
+        console.error("Error handling storage change:", error)
+      }
+    }
+
+    // This is a simplified approach - in a real app, you'd use proper event listeners
+    // or a state management library like Redux
+    const interval = setInterval(handleStorageChange, 1000)
+
+    return () => clearInterval(interval)
   }, [])
 
   const signIn = async (email: string, password: string) => {
@@ -123,6 +145,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
       await AsyncStorage.setItem("user", JSON.stringify(mockUser))
       setUser(mockUser)
+      return true // Return success status
     } catch (error) {
       console.error("Sign up failed:", error)
       throw error
