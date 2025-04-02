@@ -41,7 +41,7 @@ const MONTHS = [
 ]
 
 // Backend API URL - replace with your actual API URL
-const API_URL = "https://your-backend-api-url.com"
+const API_URL = "https://amoro-backend-3gsl.onrender.com"
 
 const SignupScreen = () => {
   const navigation = useNavigation()
@@ -235,7 +235,7 @@ const SignupScreen = () => {
       const hobbiesObject = parseHobbies(hobbies)
       const userData = {
         uid: uid,
-        Data: {
+        data: {
           email: email,
           username: username,
           Name: name,
@@ -244,7 +244,7 @@ const SignupScreen = () => {
           Phone: phone,
         },
       }
-
+      console.log(userData)
       // 3. Send user data to backend
       const response = await fetch(`${API_URL}/users`, {
         method: "POST",
@@ -253,7 +253,7 @@ const SignupScreen = () => {
         },
         body: JSON.stringify(userData),
       })
-
+     
       if (response.status !== 201) {
         throw new Error("Failed to create user data on the backend");
     }
