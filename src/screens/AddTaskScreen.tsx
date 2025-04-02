@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import Input from "../components/Input"
 import Button from "../components/Button"
+import CalendarPickerModal from "../components/CalendarPickerModal"
 
 // Mock tags data
 const TAGS = [
@@ -39,25 +40,6 @@ const NOTIFICATION_OPTIONS = [
   { id: "4", label: "1 hour before", value: 60 },
   { id: "5", label: "2 hours before", value: 120 },
   { id: "6", label: "1 day before", value: 1440 },
-]
-
-// Days of the week for calendar
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
-// Months for calendar
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
 ]
 
 const AddTaskScreen = () => {
@@ -85,11 +67,6 @@ const AddTaskScreen = () => {
   const [showStartTimePicker, setShowStartTimePicker] = useState(false)
   const [showEndTimePicker, setShowEndTimePicker] = useState(false)
   const [showNotificationOptions, setShowNotificationOptions] = useState(false)
-
-  // Calendar state
-  const [currentMonth, setCurrentMonth] = useState(date.getMonth())
-  const [currentYear, setCurrentYear] = useState(date.getFullYear())
-  const [selectedDay, setSelectedDay] = useState(date.getDate())
 
   // Time picker state
   const [selectedHours, setSelectedHours] = useState(startTime.getHours())
@@ -166,7 +143,7 @@ const AddTaskScreen = () => {
 
   const formatDate = (date: Date) => {
     try {
-      return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
+      return `${date.toLocaleDateString("en-US", { month: "long" })} ${date.getDate()}, ${date.getFullYear()}`
     } catch (error) {
       console.error("Error formatting date:", error)
       return "Invalid date"
@@ -192,90 +169,9 @@ const AddTaskScreen = () => {
     return option ? option.label : NOTIFICATION_OPTIONS[0].label
   }
 
-  // Get days in month
-  const getDaysInMonth = (month: number, year: number) => {
-    return new Date(year, month + 1, 0).getDate()
-  }
-
-  // Get first day of month (0 = Sunday, 1 = Monday, etc.)
-  const getFirstDayOfMonth = (month: number, year: number) => {
-    return new Date(year, month, 1).getDay()
-  }
-
-  // Generate calendar days
-  const generateCalendarDays = () => {
-    const daysInMonth = getDaysInMonth(currentMonth, currentYear)
-    const firstDay = getFirstDayOfMonth(currentMonth, currentYear)
-
-    const days = []
-
-    // Add empty spaces for days before the first day of the month
-    for (let i = 0; i < firstDay; i++) {
-      days.push({ day: "", isCurrentMonth: false })
-    }
-
-    // Add days of the current month
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push({ day: i, isCurrentMonth: true })
-    }
-
-    return days
-  }
-
-  // Handle date selection
-  const handleDateSelection = (day: number) => {
-    if (day) {
-      const newDate = new Date(date)
-      newDate.setFullYear(currentYear)
-      newDate.setMonth(currentMonth)
-      newDate.setDate(day)
-      setDate(newDate)
-      setSelectedDay(day)
-    }
-  }
-
-  // Navigate to previous month
-  const goToPreviousMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11)
-      setCurrentYear(currentYear - 1)
-    } else {
-      setCurrentMonth(currentMonth - 1)
-    }
-  }
-
-  // Navigate to next month
-  const goToNextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0)
-      setCurrentYear(currentYear + 1)
-    } else {
-      setCurrentMonth(currentMonth + 1)
-    }
-  }
-
-  // Handle time selection
-  const handleTimeSelection = (hours: number, minutes: number) => {
-    const newTime = new Date(isStartTime ? startTime : endTime)
-    newTime.setHours(hours)
-    newTime.setMinutes(minutes)
-
-    if (isStartTime) {
-      setStartTime(newTime)
-
-      // Ensure end time is after start time
-      if (newTime > endTime) {
-        const newEndTime = new Date(newTime)
-        newEndTime.setHours(newTime.getHours() + 1)
-        setEndTime(newEndTime)
-      }
-    } else {
-      // Ensure end time is after start time
-      if (newTime < startTime) {
-        newTime.setDate(newTime.getDate() + 1)
-      }
-      setEndTime(newTime)
-    }
+  // Handle date change from calendar picker
+  const handleDateChange = (newDate) => {
+    setDate(newDate)
   }
 
   // Generate hours for time picker
@@ -347,23 +243,27 @@ const AddTaskScreen = () => {
     }
   }
 
-  // Format time values for input elements
-  const getTimeInputValue = (date: Date) => {
-    try {
-      return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`
-    } catch (error) {
-      console.error("Error formatting time for input:", error)
-      return "00:00"
-    }
-  }
+  // Handle time selection
+  const handleTimeSelection = (hours: number, minutes: number) => {
+    const newTime = new Date(isStartTime ? startTime : endTime)
+    newTime.setHours(hours)
+    newTime.setMinutes(minutes)
 
-  // Format date value for input element
-  const getDateInputValue = (date: Date) => {
-    try {
-      return date.toISOString().split("T")[0]
-    } catch (error) {
-      console.error("Error formatting date for input:", error)
-      return new Date().toISOString().split("T")[0]
+    if (isStartTime) {
+      setStartTime(newTime)
+
+      // Ensure end time is after start time
+      if (newTime > endTime) {
+        const newEndTime = new Date(newTime)
+        newEndTime.setHours(newTime.getHours() + 1)
+        setEndTime(newEndTime)
+      }
+    } else {
+      // Ensure end time is after start time
+      if (newTime < startTime) {
+        newTime.setDate(newTime.getDate() + 1)
+      }
+      setEndTime(newTime)
     }
   }
 
@@ -424,84 +324,14 @@ const AddTaskScreen = () => {
             </View>
           </TouchableOpacity>
 
-          <Modal
+          {/* Calendar Picker Modal */}
+          <CalendarPickerModal
             visible={showDatePicker}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setShowDatePicker(false)}
-          >
-            <View style={styles.datePickerContainer}>
-              <TouchableOpacity style={styles.datePickerBackdrop} onPress={() => setShowDatePicker(false)} />
-              <View style={[styles.datePickerContent, { backgroundColor: theme.colors.card }]}>
-                <Text style={[styles.datePickerTitle, { color: theme.colors.text }]}>Select Date</Text>
-
-                {/* Calendar header */}
-                <View style={styles.calendarHeader}>
-                  <TouchableOpacity onPress={goToPreviousMonth}>
-                    <Ionicons name="chevron-back" size={24} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                  <Text style={[styles.calendarMonthYear, { color: theme.colors.text }]}>
-                    {MONTHS[currentMonth]} {currentYear}
-                  </Text>
-                  <TouchableOpacity onPress={goToNextMonth}>
-                    <Ionicons name="chevron-forward" size={24} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Days of week */}
-                <View style={styles.calendarDaysOfWeek}>
-                  {DAYS.map((day, index) => (
-                    <Text key={index} style={[styles.calendarDayOfWeek, { color: theme.colors.secondaryText }]}>
-                      {day}
-                    </Text>
-                  ))}
-                </View>
-
-                {/* Calendar days */}
-                <View style={styles.calendarDays}>
-                  {generateCalendarDays().map((item, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.calendarDay,
-                        item.isCurrentMonth &&
-                          item.day === selectedDay &&
-                          currentMonth === date.getMonth() &&
-                          currentYear === date.getFullYear() && {
-                            backgroundColor: theme.colors.primary,
-                            borderRadius: 20,
-                          },
-                      ]}
-                      onPress={() => item.isCurrentMonth && handleDateSelection(item.day)}
-                      disabled={!item.isCurrentMonth}
-                    >
-                      <Text
-                        style={[
-                          styles.calendarDayText,
-                          { color: item.isCurrentMonth ? theme.colors.text : "transparent" },
-                          item.isCurrentMonth &&
-                            item.day === selectedDay &&
-                            currentMonth === date.getMonth() &&
-                            currentYear === date.getFullYear() && {
-                              color: "#FFFFFF",
-                            },
-                        ]}
-                      >
-                        {item.day}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.datePickerButton, { backgroundColor: theme.colors.primary }]}
-                  onPress={() => setShowDatePicker(false)}
-                >
-                  <Text style={styles.datePickerButtonText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
+            onClose={() => setShowDatePicker(false)}
+            selectedDate={date}
+            onDateChange={handleDateChange}
+            title="Select Date"
+          />
 
           <Input
             label="Location"
@@ -1007,43 +837,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontFamily: "Poppins-Medium",
-  },
-  calendarHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  calendarMonthYear: {
-    fontSize: 16,
-    fontFamily: "Poppins-SemiBold",
-  },
-  calendarDaysOfWeek: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  calendarDayOfWeek: {
-    width: 35,
-    textAlign: "center",
-    fontSize: 12,
-    fontFamily: "Poppins-Medium",
-  },
-  calendarDays: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 20,
-  },
-  calendarDay: {
-    width: 35,
-    height: 35,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 5,
-  },
-  calendarDayText: {
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
   },
   timePickerContainer: {
     flexDirection: "row",

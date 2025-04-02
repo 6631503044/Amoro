@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ScrollView } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ScrollView, Modal } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import { Calendar } from "react-native-calendars"
 import { Ionicons } from "@expo/vector-icons"
@@ -59,6 +59,74 @@ const HomeScreen = () => {
   const { t, formatDate } = useLanguage()
   const today = new Date()
   const [selectedDate, setSelectedDate] = useState(today.toISOString().split("T")[0]) // Format: YYYY-MM-DD
+
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const [showYearPicker, setShowYearPicker] = useState(false)
+  const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate).getMonth())
+  const [currentYear, setCurrentYear] = useState(new Date(selectedDate).getFullYear())
+
+  // Months for calendar
+  const MONTHS = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ]
+
+  // Generate years for picker (5 years back and 5 years forward)
+  const generateYears = () => {
+    const years = []
+    const currentYear = new Date().getFullYear()
+    for (let i = -5; i <= 5; i++) {
+      years.push(currentYear + i)
+    }
+    return years
+  }
+
+  // Navigate to previous month
+  const goToPreviousMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11)
+      setCurrentYear(currentYear - 1)
+      updateSelectedDate(11, currentYear - 1)
+    } else {
+      setCurrentMonth(currentMonth - 1)
+      updateSelectedDate(currentMonth - 1, currentYear)
+    }
+  }
+
+  // Navigate to next month
+  const goToNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0)
+      setCurrentYear(currentYear + 1)
+      updateSelectedDate(0, currentYear + 1)
+    } else {
+      setCurrentMonth(currentMonth + 1)
+      updateSelectedDate(currentMonth + 1, currentYear)
+    }
+  }
+
+  // Update selected date when month/year changes
+  const updateSelectedDate = (month, year) => {
+    const currentDate = new Date(selectedDate)
+    const day = currentDate.getDate()
+
+    // Check if the day exists in the new month
+    const daysInNewMonth = new Date(year, month + 1, 0).getDate()
+    const newDay = day > daysInNewMonth ? daysInNewMonth : day
+
+    const newDate = new Date(year, month, newDay)
+    setSelectedDate(newDate.toISOString().split("T")[0])
+  }
 
   // Fix the calendar dots issue by making the keys unique
   const getMarkedDates = () => {
@@ -184,22 +252,154 @@ const HomeScreen = () => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Calendar
-          key={`calendar-${theme.mode}`} // Add this key prop to force re-render on theme change
-          theme={calendarTheme}
-          markingType={"multi-dot"}
-          markedDates={getMarkedDates()}
-          onDayPress={(day) => setSelectedDate(day.dateString)}
-          enableSwipeMonths={true}
+        <View
           style={[
-            styles.calendar,
+            styles.calendarContainer,
             {
               backgroundColor: theme.colors.card,
               borderColor: theme.colors.border,
               borderWidth: 1,
             },
           ]}
-        />
+        >
+          {/* Custom Calendar Header */}
+          <View style={styles.calendarHeader}>
+            <TouchableOpacity onPress={goToPreviousMonth}>
+              <Ionicons name="chevron-back" size={24} color={theme.colors.primary} />
+            </TouchableOpacity>
+
+            <View style={styles.monthYearSelectors}>
+              <TouchableOpacity onPress={() => setShowMonthPicker(true)}>
+                <Text style={[styles.calendarMonthYear, { color: theme.colors.text }]}>{MONTHS[currentMonth]}</Text>
+              </TouchableOpacity>
+              <Text style={[styles.calendarMonthYearSeparator, { color: theme.colors.text }]}> </Text>
+              <TouchableOpacity onPress={() => setShowYearPicker(true)}>
+                <Text style={[styles.calendarMonthYear, { color: theme.colors.text }]}>{currentYear}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity onPress={goToNextMonth}>
+              <Ionicons name="chevron-forward" size={24} color={theme.colors.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Use the original Calendar component but with customized renderHeader */}
+          <Calendar
+            key={`calendar-${theme.mode}-${currentMonth}-${currentYear}`}
+            theme={calendarTheme}
+            markingType={"multi-dot"}
+            markedDates={getMarkedDates()}
+            onDayPress={(day) => setSelectedDate(day.dateString)}
+            enableSwipeMonths={true}
+            hideArrows={true}
+            hideExtraDays={false}
+            renderHeader={() => null} // Hide the default header
+            current={`${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-01`}
+            style={styles.calendar}
+          />
+        </View>
+
+        {/* Month Picker Modal */}
+        <Modal
+          visible={showMonthPicker}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowMonthPicker(false)}
+        >
+          <View style={styles.pickerContainer}>
+            <TouchableOpacity style={styles.pickerBackdrop} onPress={() => setShowMonthPicker(false)} />
+            <View style={[styles.pickerContent, { backgroundColor: theme.colors.card }]}>
+              <View style={styles.pickerHeader}>
+                <Text style={[styles.pickerTitle, { color: theme.colors.text }]}>Select Month</Text>
+                <TouchableOpacity onPress={() => setShowMonthPicker(false)}>
+                  <Ionicons name="close" size={24} color={theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.pickerScrollView}>
+                {MONTHS.map((month, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.pickerItem,
+                      currentMonth === index && {
+                        backgroundColor: `${theme.colors.primary}20`,
+                      },
+                    ]}
+                    onPress={() => {
+                      setCurrentMonth(index)
+                      updateSelectedDate(index, currentYear)
+                      setShowMonthPicker(false)
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.pickerItemText,
+                        { color: theme.colors.text },
+                        currentMonth === index && {
+                          color: theme.colors.primary,
+                          fontFamily: "Poppins-SemiBold",
+                        },
+                      ]}
+                    >
+                      {month}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Year Picker Modal */}
+        <Modal
+          visible={showYearPicker}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowYearPicker(false)}
+        >
+          <View style={styles.pickerContainer}>
+            <TouchableOpacity style={styles.pickerBackdrop} onPress={() => setShowYearPicker(false)} />
+            <View style={[styles.pickerContent, { backgroundColor: theme.colors.card }]}>
+              <View style={styles.pickerHeader}>
+                <Text style={[styles.pickerTitle, { color: theme.colors.text }]}>Select Year</Text>
+                <TouchableOpacity onPress={() => setShowYearPicker(false)}>
+                  <Ionicons name="close" size={24} color={theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.pickerScrollView}>
+                {generateYears().map((year) => (
+                  <TouchableOpacity
+                    key={year}
+                    style={[
+                      styles.pickerItem,
+                      currentYear === year && {
+                        backgroundColor: `${theme.colors.primary}20`,
+                      },
+                    ]}
+                    onPress={() => {
+                      setCurrentYear(year)
+                      updateSelectedDate(currentMonth, year)
+                      setShowYearPicker(false)
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.pickerItemText,
+                        { color: theme.colors.text },
+                        currentYear === year && {
+                          color: theme.colors.primary,
+                          fontFamily: "Poppins-SemiBold",
+                        },
+                      ]}
+                    >
+                      {year}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         <View style={styles.dateSection}>
           <Text style={[styles.selectedDate, { color: theme.colors.text }]}>
@@ -257,7 +457,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: "Poppins-Bold",
   },
-  calendar: {
+  calendarContainer: {
     marginHorizontal: 10,
     borderRadius: 10,
     elevation: 2,
@@ -266,6 +466,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     marginBottom: 15,
+    overflow: "hidden",
+  },
+  calendarHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingTop: 15,
+    paddingBottom: 5,
+  },
+  monthYearSelectors: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  calendarMonthYear: {
+    fontSize: 16,
+    fontFamily: "Poppins-SemiBold",
+  },
+  calendarMonthYearSeparator: {
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+  },
+  calendar: {
+    borderRadius: 10,
     overflow: "hidden",
   },
   dateSection: {
@@ -319,6 +543,59 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  pickerContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  pickerBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  pickerContent: {
+    width: "80%",
+    maxHeight: "60%",
+    padding: 20,
+    borderRadius: 12,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  pickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontFamily: "Poppins-SemiBold",
+  },
+  pickerScrollView: {
+    maxHeight: 300,
+  },
+  pickerItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    marginBottom: 5,
+  },
+  pickerItemText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
   },
 })
 

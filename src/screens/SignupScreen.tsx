@@ -64,6 +64,8 @@ const SignupScreen = () => {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [selectedDay, setSelectedDay] = useState(new Date().getDate())
   const [loading, setLoading] = useState(false)
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const [showYearPicker, setShowYearPicker] = useState(false)
 
   const [errors, setErrors] = useState({
     name: "",
@@ -493,9 +495,22 @@ const SignupScreen = () => {
                 <TouchableOpacity onPress={goToPreviousMonth}>
                   <Ionicons name="chevron-back" size={24} color={theme.colors.primary} />
                 </TouchableOpacity>
-                <Text style={[styles.calendarMonthYear, { color: theme.colors.text }]}>
-                  {MONTHS[currentMonth]} {currentYear}
-                </Text>
+                <View style={styles.monthYearSelectors}>
+                  <TouchableOpacity
+                    style={[styles.selectorButton, { backgroundColor: theme.colors.card }]}
+                    onPress={() => setShowMonthPicker(true)}
+                  >
+                    <Text style={[styles.selectorText, { color: theme.colors.text }]}>{MONTHS[currentMonth]}</Text>
+                    <Ionicons name="chevron-down" size={16} color={theme.colors.secondaryText} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.selectorButton, { backgroundColor: theme.colors.card }]}
+                    onPress={() => setShowYearPicker(true)}
+                  >
+                    <Text style={[styles.selectorText, { color: theme.colors.text }]}>{currentYear}</Text>
+                    <Ionicons name="chevron-down" size={16} color={theme.colors.secondaryText} />
+                  </TouchableOpacity>
+                </View>
                 <TouchableOpacity onPress={goToNextMonth}>
                   <Ionicons name="chevron-forward" size={24} color={theme.colors.primary} />
                 </TouchableOpacity>
@@ -541,6 +556,80 @@ const SignupScreen = () => {
                   </TouchableOpacity>
                 ))}
               </View>
+
+              {/* Month Picker Modal */}
+              {showMonthPicker && (
+                <View style={styles.pickerContainer}>
+                  <ScrollView style={styles.pickerScrollView}>
+                    {MONTHS.map((month, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.pickerItem,
+                          currentMonth === index && { backgroundColor: theme.colors.primaryLight },
+                        ]}
+                        onPress={() => {
+                          setCurrentMonth(index)
+                          setShowMonthPicker(false)
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.pickerItemText,
+                            { color: theme.colors.text },
+                            currentMonth === index && { color: theme.colors.primary, fontFamily: "Poppins-SemiBold" },
+                          ]}
+                        >
+                          {month}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  <TouchableOpacity
+                    style={[styles.pickerCloseButton, { backgroundColor: theme.colors.primary }]}
+                    onPress={() => setShowMonthPicker(false)}
+                  >
+                    <Text style={styles.pickerCloseButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Year Picker Modal */}
+              {showYearPicker && (
+                <View style={styles.pickerContainer}>
+                  <ScrollView style={styles.pickerScrollView}>
+                    {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                      <TouchableOpacity
+                        key={year}
+                        style={[
+                          styles.pickerItem,
+                          currentYear === year && { backgroundColor: theme.colors.primaryLight },
+                        ]}
+                        onPress={() => {
+                          setCurrentYear(year)
+                          setShowYearPicker(false)
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.pickerItemText,
+                            { color: theme.colors.text },
+                            currentYear === year && { color: theme.colors.primary, fontFamily: "Poppins-SemiBold" },
+                          ]}
+                        >
+                          {year}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  <TouchableOpacity
+                    style={[styles.pickerCloseButton, { backgroundColor: theme.colors.primary }]}
+                    onPress={() => setShowYearPicker(false)}
+                  >
+                    <Text style={styles.pickerCloseButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               <TouchableOpacity
                 style={[styles.datePickerButton, { backgroundColor: theme.colors.primary }]}
@@ -715,6 +804,65 @@ const styles = StyleSheet.create({
   calendarDayText: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
+  },
+  monthYearSelectors: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  selectorButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+  },
+  selectorText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    marginRight: 5,
+  },
+  pickerContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1001,
+  },
+  pickerScrollView: {
+    maxHeight: 200,
+    width: "80%",
+    backgroundColor: "white",
+    borderRadius: 8,
+    padding: 10,
+  },
+  pickerItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+  },
+  pickerItemText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
+  },
+  pickerCloseButton: {
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+  },
+  pickerCloseButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
   },
 })
 

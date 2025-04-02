@@ -9,6 +9,7 @@ import { useTheme } from "../context/ThemeContext"
 import { useAuth } from "../context/AuthContext"
 import Input from "../components/Input"
 import Button from "../components/Button"
+import CalendarPickerModal from "../components/CalendarPickerModal"
 
 const AccountSettingsScreen = () => {
   const navigation = useNavigation()
@@ -26,6 +27,16 @@ const AccountSettingsScreen = () => {
   const [showImagePicker, setShowImagePicker] = useState(false)
   const [hasGalleryPermission, setHasGalleryPermission] = useState(false)
   const [hasCameraPermission, setHasCameraPermission] = useState(false)
+
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [birthdayDate, setBirthdayDate] = useState(() => {
+    try {
+      const [year, month, day] = birthday.split("-").map(Number)
+      return new Date(year, month - 1, day)
+    } catch (e) {
+      return new Date(1990, 0, 1) // Default to Jan 1, 1990
+    }
+  })
 
   // Request permissions on component mount
   useEffect(() => {
@@ -49,6 +60,16 @@ const AccountSettingsScreen = () => {
     "/placeholder.svg?height=150&width=150&text=Photo5",
     "/placeholder.svg?height=150&width=150&text=Photo6",
   ]
+
+  // Format birthday for display
+  const formatBirthday = (date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+  }
+
+  const handleDateChange = (date) => {
+    setBirthdayDate(date)
+    setBirthday(formatBirthday(date))
+  }
 
   const handleSave = async () => {
     setLoading(true)
@@ -211,12 +232,25 @@ const AccountSettingsScreen = () => {
             leftIcon={<Ionicons name="call-outline" size={20} color={theme.colors.secondaryText} />}
           />
 
-          <Input
-            label="Birthday"
-            value={birthday}
-            onChangeText={setBirthday}
-            placeholder="YYYY-MM-DD"
-            leftIcon={<Ionicons name="calendar-outline" size={20} color={theme.colors.secondaryText} />}
+          <View style={styles.inputContainer}>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>Birthday</Text>
+            <TouchableOpacity
+              style={[styles.dateInput, { borderColor: theme.colors.border }]}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={20} color={theme.colors.secondaryText} />
+              <Text style={[styles.dateText, { color: theme.colors.text }]}>{birthday}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Calendar Picker Modal */}
+          <CalendarPickerModal
+            visible={showDatePicker}
+            onClose={() => setShowDatePicker(false)}
+            selectedDate={birthdayDate}
+            onDateChange={handleDateChange}
+            yearRange="birthday"
+            title="Select Birthday"
           />
 
           <Input
@@ -446,6 +480,27 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 100,
     borderRadius: 8,
+  },
+  inputContainer: {
+    marginBottom: 15,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    marginBottom: 8,
+  },
+  dateInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+  },
+  dateText: {
+    marginLeft: 10,
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
   },
 })
 

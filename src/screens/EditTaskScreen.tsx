@@ -17,6 +17,7 @@ import { useTheme } from "../context/ThemeContext"
 import Input from "../components/Input"
 import Button from "../components/Button"
 import TagSelector from "../components/TagSelector"
+import CalendarPickerModal from "../components/CalendarPickerModal"
 
 // Mock tags data
 const TAGS = [
@@ -125,6 +126,11 @@ const EditTaskScreen = () => {
   // Get visible tags (first 6 if not showing all)
   const visibleTags = showAllTags ? TAGS : TAGS.slice(0, 6)
 
+  // Handle date change from calendar picker
+  const handleDateChange = (newDate) => {
+    setDate(newDate)
+  }
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -170,39 +176,14 @@ const EditTaskScreen = () => {
             </View>
           </TouchableOpacity>
 
-          {showDatePicker && (
-            <View style={styles.datePickerContainer}>
-              <TouchableOpacity style={styles.datePickerBackdrop} onPress={() => setShowDatePicker(false)} />
-              <View style={[styles.datePickerContent, { backgroundColor: theme.colors.card }]}>
-                <Text style={[styles.datePickerTitle, { color: theme.colors.text }]}>Select Date</Text>
-                <input
-                  type="date"
-                  value={date.toISOString().split("T")[0]}
-                  onChange={(e) => {
-                    const newDate = new Date(e.target.value)
-                    setDate(newDate)
-                    setShowDatePicker(false)
-                  }}
-                  style={{
-                    fontSize: 16,
-                    padding: 10,
-                    borderRadius: 8,
-                    border: `1px solid ${theme.colors.border}`,
-                    backgroundColor: theme.colors.background,
-                    color: theme.colors.text,
-                    width: "100%",
-                    marginBottom: 10,
-                  }}
-                />
-                <TouchableOpacity
-                  style={[styles.datePickerButton, { backgroundColor: theme.colors.primary }]}
-                  onPress={() => setShowDatePicker(false)}
-                >
-                  <Text style={styles.datePickerButtonText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
+          {/* Calendar Picker Modal */}
+          <CalendarPickerModal
+            visible={showDatePicker}
+            onClose={() => setShowDatePicker(false)}
+            selectedDate={date}
+            onDateChange={handleDateChange}
+            title="Select Date"
+          />
 
           <Input
             label="Location"
