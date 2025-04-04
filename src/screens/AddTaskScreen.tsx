@@ -12,6 +12,7 @@ import {
   Platform,
   Modal,
   Animated,
+  Alert,
 } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
@@ -19,6 +20,7 @@ import { useTheme } from "../context/ThemeContext"
 import Input from "../components/Input"
 import Button from "../components/Button"
 import CalendarPickerModal from "../components/CalendarPickerModal"
+import { useAuth } from "../context/AuthContext"
 
 // Mock tags data
 const TAGS = [
@@ -75,6 +77,10 @@ const AddTaskScreen = () => {
 
   // UI state
   const [isMounted, setIsMounted] = useState(true)
+  const [loading, setLoading] = useState(false)
+
+  // Get the current user from auth context
+  const { user } = useAuth()
 
   // Pulse animation for scroll indicator
   useEffect(() => {
@@ -112,7 +118,8 @@ const AddTaskScreen = () => {
     }
   }
 
-  const handleSave = () => {
+  // Update the handleSave function to send data to the backend
+  const handleSave = async () => {
     // Validate required fields
     if (!title.trim()) {
       // You would typically show an error message here
@@ -120,24 +127,63 @@ const AddTaskScreen = () => {
       return
     }
 
-    // Here you would save the activity to your data store
     try {
-      console.log({
-        withPartner,
-        title,
-        description,
-        location,
-        date,
-        startTime,
-        endTime,
-        selectedTag,
-        notificationTime,
+      setLoading(true)
+
+      if (!user || !user.id) {
+        console.error("User not authenticated")
+        return
+      }
+
+      // Format the date to YYYY-MM-DD
+      const formattedDate = date.toISOString().split("T")[0]
+
+      // Format times to HH:MM
+      const formatTimeString = (date) => {
+        const hours = date.getHours().toString().padStart(2, "0")
+        const minutes = date.getMinutes().toString().padStart(2, "0")
+        return `${hours}:${minutes}`
+      }
+
+      // Create payload
+      const payload = {
+        createdAt: new Date().toISOString().replace("Z", "+07:00"), // Bangkok timezone
+        date: formattedDate,
+        title: title,
+        description: description || "",
+        withPartner: withPartner,
+        startTime: formatTimeString(startTime),
+        endTime: formatTimeString(endTime),
+        location: location || "",
+      }
+
+      console.log("Sending task data:", payload)
+
+      // Send data to backend
+      const API_URL = "https://amoro-backend-3gsl.onrender.com" // Replace with your actual API URL
+      const response = await fetch(`${API_URL}/tasks/${user.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       })
 
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`)
+      }
+
+      const responseData = await response.json()
+      console.log("Task created successfully:", responseData)
+
+      // Navigate back on success
       navigation.goBack()
     } catch (error) {
       console.error("Error saving activity:", error)
       // You would typically show an error message here
+      Alert.alert("Error", "Failed to save activity. Please try again.", [{ text: "OK" }])
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -310,10 +356,7 @@ const AddTaskScreen = () => {
             placeholder="Enter activity description"
             multiline
             numberOfLines={2}
-            style={[
-              styles.descriptionInput,
-              { color: theme.colors.text }
-            ]}
+            style={[styles.descriptionInput, { color: theme.colors.text }]}
             placeholderTextColor={theme.colors.secondaryText}
             textAlignVertical="center"
             textAlign="left"
@@ -614,7 +657,7 @@ const AddTaskScreen = () => {
           )}
 
           <View style={styles.buttonContainer}>
-            <Button title="Save Activity" onPress={handleSave} />
+            <Button title={loading ? "Saving..." : "Save Activity"} onPress={handleSave} disabled={loading} />
           </View>
         </ScrollView>
       </View>
