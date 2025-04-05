@@ -123,7 +123,7 @@ const AddTaskScreen = () => {
     // Validate required fields
     if (!title.trim()) {
       // You would typically show an error message here
-      console.warn("Title is required")
+      Alert.alert("Error", "Title is required")
       return
     }
 
@@ -145,6 +145,14 @@ const AddTaskScreen = () => {
         return `${hours}:${minutes}`
       }
 
+      // Get the tag name from the selected tag ID
+      const selectedTagObject = TAGS.find((tag) => tag.id === selectedTag)
+      const tagName = selectedTagObject ? selectedTagObject.name : ""
+
+      // Get the notification text
+      const notificationOption = NOTIFICATION_OPTIONS.find((option) => option.value === notificationTime)
+      const notificationText = notificationOption ? notificationOption.label : "At time of event"
+
       // Create payload
       const payload = {
         createdAt: new Date().toISOString().replace("Z", "+07:00"), // Bangkok timezone
@@ -155,6 +163,13 @@ const AddTaskScreen = () => {
         startTime: formatTimeString(startTime),
         endTime: formatTimeString(endTime),
         location: location || "",
+        Mood: {
+          Score: "",
+          Description: "",
+        },
+        Tag: tagName,
+        Notification: notificationText,
+        Complete: false,
       }
 
       console.log("Sending task data:", payload)

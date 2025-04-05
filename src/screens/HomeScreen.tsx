@@ -1,62 +1,20 @@
 "use client"
 
-import { useState } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ScrollView, Modal } from "react-native"
+import { useState, useEffect } from "react"
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ScrollView, Modal, ActivityIndicator } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import { Calendar } from "react-native-calendars"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import { useLanguage } from "../context/LanguageContext"
+import { useAuth } from "../context/AuthContext"
 import ActivityItem from "../components/ActivityItem"
-
-// Mock data for activities
-const MOCK_ACTIVITIES = [
-  {
-    id: "1",
-    title: "Morning Jog",
-    startTime: "07:00",
-    endTime: "08:00",
-    date: "2023-06-15",
-    type: "personal",
-    tag: "exercise",
-    emoji: "🏃‍♂️",
-  },
-  {
-    id: "2",
-    title: "Dinner Date",
-    startTime: "19:00",
-    endTime: "21:00",
-    date: "2023-06-15",
-    type: "couple",
-    tag: "date",
-    emoji: "🍽️",
-  },
-  {
-    id: "3",
-    title: "Movie Night",
-    startTime: "21:30",
-    endTime: "23:30",
-    date: "2023-06-15",
-    type: "couple",
-    tag: "entertainment",
-    emoji: "🎬",
-  },
-  {
-    id: "4",
-    title: "Work Meeting",
-    startTime: "10:00",
-    endTime: "11:00",
-    date: "2023-06-16",
-    type: "personal",
-    tag: "work",
-    emoji: "💼",
-  },
-]
 
 const HomeScreen = () => {
   const navigation = useNavigation()
   const { theme } = useTheme()
   const { t, formatDate } = useLanguage()
+  const { user } = useAuth()
   const today = new Date()
   const [selectedDate, setSelectedDate] = useState(today.toISOString().split("T")[0]) // Format: YYYY-MM-DD
 
@@ -64,6 +22,10 @@ const HomeScreen = () => {
   const [showYearPicker, setShowYearPicker] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate).getMonth())
   const [currentYear, setCurrentYear] = useState(new Date(selectedDate).getFullYear())
+
+  const [activities, setActivities] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   // Months for calendar
   const MONTHS = [
@@ -80,6 +42,98 @@ const HomeScreen = () => {
     "November",
     "December",
   ]
+
+  // Fetch activities for the selected date
+  useEffect(() => {
+    const fetchActivities = async () => {
+      if (!user || !user.id) return
+
+      setLoading(true)
+      setError(null)
+
+      try {
+        const [year, month, day] = selectedDate.split("-")
+        const API_URL = "https://amoro-backend-3gsl.onrender.com"
+        const response = await fetch(`${API_URL}/tasks/${user.id}/${year}/${month}/${day}`)
+
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        // Transform the data to match the ActivityItem component's expected format
+        const formattedActivities = []
+
+        // Check if data is not empty
+        if (data && Object.keys(data).length > 0) {
+          // Iterate through each taskId
+          Object.entries(data).forEach(([taskId, taskData]) => {
+            // Check if taskData is an array
+            if (Array.isArray(taskData)) {
+              taskData.forEach((task) => {
+                // Get emoji based on tag
+                let emoji = "📝" // Default emoji
+                switch (task.Tag) {
+                  case "Date":
+                    emoji = "❤️"
+                    break
+                  case "Work":
+                    emoji = "💼"
+                    break
+                  case "Exercise":
+                    emoji = "🏃‍♂️"
+                    break
+                  case "Entertainment":
+                    emoji = "🎬"
+                    break
+                  case "Travel":
+                    emoji = "✈️"
+                    break
+                  case "Food":
+                    emoji = "🍽️"
+                    break
+                  case "Shopping":
+                    emoji = "🛍️"
+                    break
+                  case "Study":
+                    emoji = "📚"
+                    break
+                }
+
+                formattedActivities.push({
+                  id: taskId,
+                  title: task.title,
+                  startTime: task.startTime || "00:00",
+                  endTime: task.endTime || "23:59",
+                  date: task.date,
+                  type: task.withPartner ? "couple" : "personal",
+                  tag: task.Tag,
+                  emoji: emoji,
+                  description: task.description,
+                  location: task.location,
+                  notification: task.Notification,
+                  complete: task.Complete,
+                  mood: task.Mood,
+                  // Include the original task data for passing to other screens
+                  originalData: task,
+                })
+              })
+            }
+          })
+        }
+
+        setActivities(formattedActivities)
+      } catch (err) {
+        console.error("Error fetching activities:", err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchActivities()
+  }, [selectedDate, user])
 
   // Generate years for picker (5 years back and 5 years forward)
   const generateYears = () => {
@@ -132,7 +186,7 @@ const HomeScreen = () => {
   const getMarkedDates = () => {
     const markedDates = {}
 
-    MOCK_ACTIVITIES.forEach((activity) => {
+    activities.forEach((activity) => {
       if (!markedDates[activity.date]) {
         markedDates[activity.date] = { dots: [] }
       }
@@ -156,7 +210,7 @@ const HomeScreen = () => {
   }
 
   // Filter activities for the selected date
-  const activitiesForSelectedDate = MOCK_ACTIVITIES.filter((activity) => activity.date === selectedDate)
+  const activitiesForSelectedDate = activities.filter((activity) => activity.date === selectedDate)
 
   const handleAddActivity = () => {
     navigation.navigate("AddTask" as never)
@@ -166,9 +220,15 @@ const HomeScreen = () => {
     navigation.navigate("ToDoList" as never)
   }
 
-  const handleActivityPress = (activityId: string) => {
-    // @ts-ignore - Ignoring type error for navigation
-    navigation.navigate("ShowTask", { activityId })
+  const handleActivityPress = (activity) => {
+    // Navigate to ShowTask screen with the activity data
+    navigation.navigate(
+      "ShowTask" as never,
+      {
+        activityId: activity.id,
+        activityData: activity,
+      } as never,
+    )
   }
 
   // Update the calendarTheme object to better follow the theme system
@@ -415,11 +475,21 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {activitiesForSelectedDate.length > 0 ? (
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={[styles.errorText, { color: theme.colors.secondaryText }]}>
+                Error loading activities. Please try again.
+              </Text>
+            </View>
+          ) : activitiesForSelectedDate.length > 0 ? (
             <FlatList
               data={activitiesForSelectedDate}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <ActivityItem activity={item} onPress={() => handleActivityPress(item.id)} />}
+              renderItem={({ item }) => <ActivityItem activity={item} onPress={() => handleActivityPress(item)} />}
               scrollEnabled={false}
             />
           ) : (
@@ -528,6 +598,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins-Regular",
     marginBottom: 15,
+  },
+  loadingContainer: {
+    paddingVertical: 30,
+    alignItems: "center",
+  },
+  errorContainer: {
+    paddingVertical: 30,
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
   },
   floatingButton: {
     position: "absolute",

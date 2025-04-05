@@ -1,127 +1,182 @@
 "use client"
 
-import { useState } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from "react-native"
+import { useState, useEffect } from "react"
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
+import { useAuth } from "../context/AuthContext"
 import ActivityItem from "../components/ActivityItem"
-
-// Mock data for activities
-const MOCK_ACTIVITIES = [
-  {
-    id: "1",
-    title: "Morning Jog",
-    startTime: "07:00",
-    endTime: "08:00",
-    date: "2023-06-15",
-    type: "personal",
-    tag: "exercise",
-    emoji: "🏃‍♂️",
-  },
-  {
-    id: "2",
-    title: "Dinner Date",
-    startTime: "19:00",
-    endTime: "21:00",
-    date: "2023-06-15",
-    type: "couple",
-    tag: "date",
-    emoji: "🍽️",
-  },
-  {
-    id: "3",
-    title: "Movie Night",
-    startTime: "21:30",
-    endTime: "23:30",
-    date: "2023-06-15",
-    type: "couple",
-    tag: "entertainment",
-    emoji: "🎬",
-  },
-  {
-    id: "4",
-    title: "Work Meeting",
-    startTime: "10:00",
-    endTime: "11:00",
-    date: "2023-06-16",
-    type: "personal",
-    tag: "work",
-    emoji: "💼",
-  },
-  {
-    id: "5",
-    title: "Grocery Shopping",
-    startTime: "16:00",
-    endTime: "17:30",
-    date: "2023-06-17",
-    type: "couple",
-    tag: "shopping",
-    emoji: "🛒",
-  },
-  {
-    id: "6",
-    title: "Gym Session",
-    startTime: "18:00",
-    endTime: "19:30",
-    date: "2023-06-18",
-    type: "personal",
-    tag: "exercise",
-    emoji: "💪",
-  },
-]
 
 type FilterType = "day" | "week" | "month"
 
 const ToDoListScreen = () => {
   const navigation = useNavigation()
   const { theme } = useTheme()
+  const { user } = useAuth()
   const [filter, setFilter] = useState<FilterType>("day")
+  const [activities, setActivities] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  const getFilteredActivities = () => {
-    const today = new Date()
+  // Fetch activities based on the selected filter
+  useEffect(() => {
+    const fetchActivities = async () => {
+      if (!user || !user.id) return
 
-    switch (filter) {
-      case "day":
-        // Filter for today
-        return MOCK_ACTIVITIES.filter((activity) => {
-          const activityDate = new Date(activity.date)
-          return (
-            activityDate.getDate() === today.getDate() &&
-            activityDate.getMonth() === today.getMonth() &&
-            activityDate.getFullYear() === today.getFullYear()
-          )
+      setLoading(true)
+      setError(null)
+
+      try {
+        const today = new Date()
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, "0")
+        const day = String(today.getDate()).padStart(2, "0")
+
+        const API_URL = "https://amoro-backend-3gsl.onrender.com"
+
+        // Different API endpoints based on filter
+        let endpoint = ""
+
+        switch (filter) {
+          case "day":
+            endpoint = `${API_URL}/tasks/${user.id}/${year}/${month}/${day}`
+            break
+          case "week":
+            // For week, we'll use the same endpoint but filter the results client-side
+            endpoint = `${API_URL}/tasks/${user.id}/${year}/${month}`
+            break
+          case "month":
+            endpoint = `${API_URL}/tasks/${user.id}/${year}/${month}`
+            break
+          default:
+            endpoint = `${API_URL}/tasks/${user.id}/${year}/${month}/${day}`
+        }
+
+        const response = await fetch(endpoint)
+
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        // Transform the data to match the ActivityItem component's expected format
+        const formattedActivities = []
+
+        // Check if data is not empty
+        if (data && Object.keys(data).length > 0) {
+          // Iterate through each taskId
+          Object.entries(data).forEach(([taskId, taskData]) => {
+            // Check if taskData is an array
+            if (Array.isArray(taskData)) {
+              taskData.forEach((task) => {
+                // Get emoji based on tag
+                let emoji = "📝" // Default emoji
+                switch (task.Tag) {
+                  case "Date":
+                    emoji = "❤️"
+                    break
+                  case "Work":
+                    emoji = "💼"
+                    break
+                  case "Exercise":
+                    emoji = "🏃‍♂️"
+                    break
+                  case "Entertainment":
+                    emoji = "🎬"
+                    break
+                  case "Travel":
+                    emoji = "✈️"
+                    break
+                  case "Food":
+                    emoji = "🍽️"
+                    break
+                  case "Shopping":
+                    emoji = "🛍️"
+                    break
+                  case "Study":
+                    emoji = "📚"
+                    break
+                }
+
+                const taskDate = new Date(task.date)
+
+                // For week filter, check if the date is within the current week
+                if (filter === "week") {
+                  const startOfWeek = new Date(today)
+                  startOfWeek.setDate(today.getDate() - today.getDay()) // Start of week (Sunday)
+
+                  const endOfWeek = new Date(startOfWeek)
+                  endOfWeek.setDate(startOfWeek.getDate() + 6) // End of week (Saturday)
+
+                  // Skip if not in current week
+                  if (taskDate < startOfWeek || taskDate > endOfWeek) {
+                    return
+                  }
+                }
+
+                formattedActivities.push({
+                  id: taskId,
+                  title: task.title,
+                  startTime: task.startTime || "00:00",
+                  endTime: task.endTime || "23:59",
+                  date: task.date,
+                  type: task.withPartner ? "couple" : "personal",
+                  tag: task.Tag,
+                  emoji: emoji,
+                  description: task.description,
+                  location: task.location,
+                  notification: task.Notification,
+                  complete: task.Complete,
+                  mood: task.Mood,
+                  // Include the original task data for passing to other screens
+                  originalData: task,
+                })
+              })
+            }
+          })
+        }
+
+        // Sort activities by date and time
+        formattedActivities.sort((a, b) => {
+          // First sort by date
+          const dateA = new Date(a.date)
+          const dateB = new Date(b.date)
+
+          if (dateA < dateB) return -1
+          if (dateA > dateB) return 1
+
+          // If same date, sort by start time
+          return a.startTime.localeCompare(b.startTime)
         })
 
-      case "week":
-        // Filter for the current week
-        const startOfWeek = new Date(today)
-        startOfWeek.setDate(today.getDate() - today.getDay())
-        const endOfWeek = new Date(startOfWeek)
-        endOfWeek.setDate(startOfWeek.getDate() + 6)
-
-        return MOCK_ACTIVITIES.filter((activity) => {
-          const activityDate = new Date(activity.date)
-          return activityDate >= startOfWeek && activityDate <= endOfWeek
-        })
-
-      case "month":
-        // Filter for the current month
-        return MOCK_ACTIVITIES.filter((activity) => {
-          const activityDate = new Date(activity.date)
-          return activityDate.getMonth() === today.getMonth() && activityDate.getFullYear() === today.getFullYear()
-        })
-
-      default:
-        return MOCK_ACTIVITIES
+        setActivities(formattedActivities)
+      } catch (err) {
+        console.error("Error fetching activities:", err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
-  }
+
+    fetchActivities()
+  }, [filter, user])
 
   const handleAddActivity = () => {
     navigation.navigate("AddTask" as never)
   }
 
-  const filteredActivities = getFilteredActivities()
+  const handleActivityPress = (activity) => {
+    // Navigate to ShowTask screen with the activity data
+    navigation.navigate(
+      "ShowTask" as never,
+      {
+        activityId: activity.id,
+        activityData: activity,
+      } as never,
+    )
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -162,11 +217,21 @@ const ToDoListScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {filteredActivities.length > 0 ? (
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: theme.colors.secondaryText }]}>
+            Error loading activities. Please try again.
+          </Text>
+        </View>
+      ) : activities.length > 0 ? (
         <FlatList
-          data={filteredActivities}
+          data={activities}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ActivityItem activity={item} onPress={() => {}} />}
+          renderItem={({ item }) => <ActivityItem activity={item} onPress={() => handleActivityPress(item)} />}
           contentContainerStyle={styles.listContent}
         />
       ) : (
@@ -273,6 +338,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
   },
 })
 
