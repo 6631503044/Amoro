@@ -7,6 +7,7 @@ import { useTheme } from "../context/ThemeContext"
 import { useLanguage } from "../context/LanguageContext"
 import { useAuth } from "../context/AuthContext"
 import Button from "../components/Button"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 const ShowTaskScreen = () => {
   const navigation = useNavigation()
@@ -80,6 +81,9 @@ const ShowTaskScreen = () => {
       if (!response.ok) {
         throw new Error(`API request failed with status ${response.status}`)
       }
+
+      // Set flag to refresh home screen data
+      await AsyncStorage.setItem("refreshHomeData", "true")
 
       // Navigate to AddReview screen after marking as complete
       navigation.navigate("AddReview" as never, { activityId: activityId, activityData: activityData } as never)

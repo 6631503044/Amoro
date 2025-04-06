@@ -21,6 +21,7 @@ import Input from "../components/Input"
 import Button from "../components/Button"
 import CalendarPickerModal from "../components/CalendarPickerModal"
 import { useAuth } from "../context/AuthContext"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Mock tags data
 const TAGS = [
@@ -190,6 +191,9 @@ const AddTaskScreen = () => {
 
       const responseData = await response.json()
       console.log("Task created successfully:", responseData)
+
+      // Set flag to refresh home screen data
+      await AsyncStorage.setItem("refreshHomeData", "true")
 
       // Navigate back on success
       navigation.goBack()

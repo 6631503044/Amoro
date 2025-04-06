@@ -7,7 +7,6 @@ type UserContextType = {
   setUserId: (userId: string) => void
 }
 
-
 const UserContext = createContext<UserContextType | null>(null)
 
 export const useUser = () => {

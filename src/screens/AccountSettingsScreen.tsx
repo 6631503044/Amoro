@@ -10,6 +10,7 @@ import { useAuth } from "../context/AuthContext"
 import Input from "../components/Input"
 import Button from "../components/Button"
 import CalendarPickerModal from "../components/CalendarPickerModal"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 const AccountSettingsScreen = () => {
   const navigation = useNavigation()
@@ -89,6 +90,9 @@ const AccountSettingsScreen = () => {
           photoURL: profileImage,
         })
       }
+
+      // Set flag to refresh home screen data
+      await AsyncStorage.setItem("refreshHomeData", "true")
 
       Alert.alert("Success", "Profile updated successfully")
       navigation.goBack()

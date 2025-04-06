@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ScrollView, Modal, ActivityIndicator } from "react-native"
-import { useNavigation } from "@react-navigation/native"
+import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import { Calendar } from "react-native-calendars"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import { useLanguage } from "../context/LanguageContext"
 import { useAuth } from "../context/AuthContext"
 import ActivityItem from "../components/ActivityItem"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 const HomeScreen = () => {
   const navigation = useNavigation()
@@ -23,9 +24,13 @@ const HomeScreen = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate).getMonth())
   const [currentYear, setCurrentYear] = useState(new Date(selectedDate).getFullYear())
 
+  // Replace the useState declarations at the top of the component with this updated version that includes a cache
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [dataCache, setDataCache] = useState({})
+  const [initialLoadDone, setInitialLoadDone] = useState(false)
 
   // Months for calendar
   const MONTHS = [
@@ -43,97 +48,150 @@ const HomeScreen = () => {
     "December",
   ]
 
-  // Fetch activities for the selected date
-  useEffect(() => {
-    const fetchActivities = async () => {
-      if (!user || !user.id) return
+  // Replace the fetchActivities function with this optimized version
+  const fetchActivities = async (forceRefresh = false) => {
+    if (!user || !user.id) return
 
-      setLoading(true)
-      setError(null)
+    // Format the date components for the API path
+    const year = currentYear
+    const month = String(currentMonth + 1).padStart(2, "0")
+    const cacheKey = `${year}-${month}`
 
-      try {
-        const [year, month, day] = selectedDate.split("-")
-        const API_URL = "https://amoro-backend-3gsl.onrender.com"
-        const response = await fetch(`${API_URL}/tasks/${user.id}/${year}/${month}/${day}`)
-
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`)
-        }
-
-        const data = await response.json()
-
-        // Transform the data to match the ActivityItem component's expected format
-        const formattedActivities = []
-
-        // Check if data is not empty
-        if (data && Object.keys(data).length > 0) {
-          // Iterate through each taskId
-          Object.entries(data).forEach(([taskId, taskData]) => {
-            // Check if taskData is an array
-            if (Array.isArray(taskData)) {
-              taskData.forEach((task) => {
-                // Get emoji based on tag
-                let emoji = "📝" // Default emoji
-                switch (task.Tag) {
-                  case "Date":
-                    emoji = "❤️"
-                    break
-                  case "Work":
-                    emoji = "💼"
-                    break
-                  case "Exercise":
-                    emoji = "🏃‍♂️"
-                    break
-                  case "Entertainment":
-                    emoji = "🎬"
-                    break
-                  case "Travel":
-                    emoji = "✈️"
-                    break
-                  case "Food":
-                    emoji = "🍽️"
-                    break
-                  case "Shopping":
-                    emoji = "🛍️"
-                    break
-                  case "Study":
-                    emoji = "📚"
-                    break
-                }
-
-                formattedActivities.push({
-                  id: taskId,
-                  title: task.title,
-                  startTime: task.startTime || "00:00",
-                  endTime: task.endTime || "23:59",
-                  date: task.date,
-                  type: task.withPartner ? "couple" : "personal",
-                  tag: task.Tag,
-                  emoji: emoji,
-                  description: task.description,
-                  location: task.location,
-                  notification: task.Notification,
-                  complete: task.Complete,
-                  mood: task.Mood,
-                  // Include the original task data for passing to other screens
-                  originalData: task,
-                })
-              })
-            }
-          })
-        }
-
-        setActivities(formattedActivities)
-      } catch (err) {
-        console.error("Error fetching activities:", err)
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
+    // Check if we already have this data in cache and it's not a forced refresh
+    if (!forceRefresh && dataCache[cacheKey] && dataCache[cacheKey].length > 0) {
+      setActivities(dataCache[cacheKey])
+      return
     }
 
-    fetchActivities()
-  }, [selectedDate, user])
+    // Only show loading indicator on initial load or when changing months
+    if (!initialLoadDone || !dataCache[cacheKey]) {
+      setLoading(true)
+    }
+
+    setError(null)
+
+    try {
+      const API_URL = "https://amoro-backend-3gsl.onrender.com"
+      const response = await fetch(`${API_URL}/tasks/${user.id}/${year}/${month}`)
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      // Transform the data to match the ActivityItem component's expected format
+      const formattedActivities = []
+
+      // Check if data is an array and not empty
+      if (data && Array.isArray(data) && data.length > 0) {
+        data.forEach((item) => {
+          const { taskId, data: taskData, day } = item
+
+          // Get emoji based on tag
+          let emoji = "📝" // Default emoji
+          const tag = taskData.Tag || taskData.tag // Handle both capitalization formats
+
+          switch (tag) {
+            case "Date":
+              emoji = "❤️"
+              break
+            case "Work":
+              emoji = "💼"
+              break
+            case "Exercise":
+              emoji = "🏃‍♂️"
+              break
+            case "Entertainment":
+              emoji = "🎬"
+              break
+            case "Travel":
+              emoji = "✈️"
+              break
+            case "Food":
+              emoji = "🍽️"
+              break
+            case "Shopping":
+              emoji = "🛍️"
+              break
+            case "Study":
+              emoji = "📚"
+              break
+          }
+
+          formattedActivities.push({
+            id: taskId,
+            title: taskData.title,
+            startTime: taskData.startTime || "00:00",
+            endTime: taskData.endTime || "23:59",
+            date: taskData.date,
+            type: taskData.withPartner ? "couple" : "personal",
+            tag: tag,
+            emoji: emoji,
+            description: taskData.description,
+            location: taskData.location,
+            notification: taskData.Notification || taskData.notification,
+            complete: taskData.Complete || taskData.completed || false,
+            mood: taskData.Mood || taskData.mood,
+            // Include the original task data for passing to other screens
+            originalData: taskData,
+          })
+        })
+      }
+
+      // Update the cache with the new data
+      setDataCache((prevCache) => ({
+        ...prevCache,
+        [cacheKey]: formattedActivities,
+      }))
+
+      setActivities(formattedActivities)
+      setInitialLoadDone(true)
+
+      // Save the last fetch time
+      await AsyncStorage.setItem("lastDataFetch", new Date().toISOString())
+      await AsyncStorage.setItem(`lastFetch-${cacheKey}`, new Date().toISOString())
+    } catch (err) {
+      console.error("Error fetching activities:", err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Replace the useFocusEffect with this optimized version
+  useFocusEffect(
+    useCallback(() => {
+      const checkRefreshNeeded = async () => {
+        try {
+          const refreshFlag = await AsyncStorage.getItem("refreshHomeData")
+          if (refreshFlag === "true") {
+            // Clear the flag
+            await AsyncStorage.setItem("refreshHomeData", "false")
+            // Force refresh the current month's data
+            fetchActivities(true)
+          }
+        } catch (error) {
+          console.error("Error checking refresh flag:", error)
+        }
+      }
+
+      checkRefreshNeeded()
+    }, []),
+  )
+
+  // Replace the useEffect with this optimized version
+  useEffect(() => {
+    // Only fetch if we don't have data for this month/year in cache
+    const cacheKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`
+
+    if (!dataCache[cacheKey]) {
+      fetchActivities()
+    } else {
+      // If we have cached data, use it
+      setActivities(dataCache[cacheKey])
+    }
+  }, [currentYear, currentMonth, user, refreshTrigger])
 
   // Generate years for picker (5 years back and 5 years forward)
   const generateYears = () => {
@@ -169,7 +227,7 @@ const HomeScreen = () => {
     }
   }
 
-  // Update selected date when month/year changes
+  // Replace the updateSelectedDate function with this optimized version
   const updateSelectedDate = (month, year) => {
     const currentDate = new Date(selectedDate)
     const day = currentDate.getDate()
@@ -186,24 +244,29 @@ const HomeScreen = () => {
   const getMarkedDates = () => {
     const markedDates = {}
 
-    activities.forEach((activity) => {
-      if (!markedDates[activity.date]) {
-        markedDates[activity.date] = { dots: [] }
-      }
-
-      // Add dot with a unique key for each activity
-      markedDates[activity.date].dots.push({
-        key: `${activity.type}-${activity.id}`, // Make keys unique by adding ID
-        color: activity.type === "personal" ? theme.colors.personalActivity : theme.colors.coupleActivity,
-        selectedDotColor: activity.type === "personal" ? theme.colors.personalActivity : theme.colors.coupleActivity,
-      })
-    })
-
-    // Add selected date styling
+    // First, mark the selected date
     markedDates[selectedDate] = {
-      ...markedDates[selectedDate],
       selected: true,
       selectedColor: theme.colors.primary,
+      dots: [],
+    }
+
+    // If we have activities data, add dots for each activity date
+    if (Array.isArray(activities)) {
+      activities.forEach((activity) => {
+        if (!markedDates[activity.date]) {
+          markedDates[activity.date] = { dots: [] }
+        } else if (!markedDates[activity.date].dots) {
+          markedDates[activity.date].dots = []
+        }
+
+        // Add dot with a unique key for each activity
+        markedDates[activity.date].dots.push({
+          key: `${activity.type}-${activity.id}`, // Make keys unique by adding ID
+          color: activity.type === "personal" ? theme.colors.personalActivity : theme.colors.coupleActivity,
+          selectedDotColor: activity.type === "personal" ? theme.colors.personalActivity : theme.colors.coupleActivity,
+        })
+      })
     }
 
     return markedDates

@@ -6,6 +6,7 @@ import { useNavigation, useRoute } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import { useLanguage } from "../context/LanguageContext"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Mock activity data with enhanced details
 const ACTIVITY = {
@@ -44,7 +45,7 @@ const AddReviewScreen = () => {
   const [review, setReview] = useState("")
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Here you would save the review to your data store
     console.log({
       activityId: activity.id,
@@ -52,6 +53,9 @@ const AddReviewScreen = () => {
       review,
       mood: selectedMood,
     })
+
+    // Set flag to refresh home screen data
+    await AsyncStorage.setItem("refreshHomeData", "true")
 
     navigation.goBack()
   }
