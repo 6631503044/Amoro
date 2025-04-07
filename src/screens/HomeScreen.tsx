@@ -58,13 +58,13 @@ const HomeScreen = () => {
     const cacheKey = `${year}-${month}`
 
     // Check if we already have this data in cache and it's not a forced refresh
-    if (!forceRefresh && dataCache[cacheKey] && dataCache[cacheKey].length > 0) {
-      setActivities(dataCache[cacheKey])
+    if (!forceRefresh && dataCache[cacheKey] !== undefined) {
+      setActivities(dataCache[cacheKey] || [])
       return
     }
 
     // Only show loading indicator on initial load or when changing months
-    if (!initialLoadDone || !dataCache[cacheKey]) {
+    if (!initialLoadDone || dataCache[cacheKey] === undefined) {
       setLoading(true)
     }
 
@@ -75,6 +75,18 @@ const HomeScreen = () => {
       const response = await fetch(`${API_URL}/tasks/${user.id}/${year}/${month}`)
 
       if (!response.ok) {
+        // If it's a 404, it means there are no tasks for this month
+        // We'll handle this as an empty array, not as an error
+        if (response.status === 404) {
+          setDataCache((prevCache) => ({
+            ...prevCache,
+            [cacheKey]: [], // Store empty array for this month
+          }))
+          setActivities([])
+          setInitialLoadDone(true)
+          setLoading(false)
+          return
+        }
         throw new Error(`API request failed with status ${response.status}`)
       }
 

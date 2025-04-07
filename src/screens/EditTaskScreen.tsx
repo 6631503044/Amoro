@@ -20,7 +20,7 @@ import { useTheme } from "../context/ThemeContext"
 import Input from "../components/Input"
 import Button from "../components/Button"
 import CalendarPickerModal from "../components/CalendarPickerModal"
-import { useUser } from "../context/UserContext"
+import { useAuth } from "../context/AuthContext"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Mock tags data
@@ -45,48 +45,76 @@ const NOTIFICATION_OPTIONS = [
   { id: "6", label: "1 day before", value: 1440 },
 ]
 
-// Mock activity data
-const MOCK_ACTIVITY = {
-  id: "1",
-  title: "Morning Jog",
-  description: "Morning jog in the park to start the day fresh",
-  startTime: "07:00",
-  endTime: "08:00",
-  date: "2023-06-15",
-  type: "personal",
-  tag: "3", // exercise
-  emoji: "🏃‍♂️",
-  location: "Central Park",
-  withPartner: false,
-  notification: 15, // minutes before
-  createdAt: new Date().toISOString().replace("Z", "+07:00"),
-  Mood: {
-    Score: "",
-    Description: "",
-  },
-  Complete: false,
-}
+// Remove the MOCK_ACTIVITY constant completely
 
+// Update the component to get activity data from route params
 const EditTaskScreen = () => {
   const navigation = useNavigation()
   const route = useRoute()
   const { theme } = useTheme()
-  const { user } = useUser()
+  const { user } = useAuth()
 
-  // In a real app, you would fetch the activity based on the ID from the route
-  // const { activityId } = route.params;
-  const activity = MOCK_ACTIVITY
+  // Get the activity data from the route params
+  const { activityId, activityData } = route.params || {}
 
-  // Form state
-  const [withPartner, setWithPartner] = useState(activity.withPartner)
-  const [title, setTitle] = useState(activity.title)
-  const [description, setDescription] = useState(activity.description)
-  const [location, setLocation] = useState(activity.location)
-  const [date, setDate] = useState(new Date(activity.date))
-  const [startTime, setStartTime] = useState(new Date(`2023-01-01T${activity.startTime}`))
-  const [endTime, setEndTime] = useState(new Date(`2023-01-01T${activity.endTime}`))
-  const [selectedTag, setSelectedTag] = useState<string | null>(activity.tag || null)
-  const [notificationTime, setNotificationTime] = useState(activity.notification)
+  // Check if we have the activity data
+  if (!activityData) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="close" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Edit Activity</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.errorText, { color: theme.colors.secondaryText }]}>
+            Activity data not found. Please try again.
+          </Text>
+        </View>
+      </View>
+    )
+  }
+
+  // Form state initialized with the received activity data
+  const [title, setTitle] = useState(activityData.title || "")
+  const [description, setDescription] = useState(activityData.description || "")
+  const [location, setLocation] = useState(activityData.location || "")
+  const [date, setDate] = useState(new Date(activityData.date))
+
+  // Handle time parsing safely
+  const parseTime = (timeString) => {
+    try {
+      // Try to parse the time in HH:MM format
+      const [hours, minutes] = timeString.split(":").map(Number)
+      const date = new Date()
+      date.setHours(hours, minutes, 0, 0)
+      return date
+    } catch (error) {
+      console.error("Error parsing time:", error)
+      return new Date()
+    }
+  }
+
+  const [startTime, setStartTime] = useState(parseTime(activityData.startTime || "00:00"))
+  const [endTime, setEndTime] = useState(parseTime(activityData.endTime || "23:59"))
+
+  // Find tag ID based on tag name
+  const findTagId = (tagName) => {
+    const tag = TAGS.find((t) => t.name.toLowerCase() === (tagName || "").toLowerCase())
+    return tag ? tag.id : null
+  }
+
+  const [selectedTag, setSelectedTag] = useState<string | null>(findTagId(activityData.tag))
+
+  // Find notification value based on notification text
+  const findNotificationValue = (notificationText) => {
+    const option = NOTIFICATION_OPTIONS.find((opt) => opt.label === notificationText)
+    return option ? option.value : 0
+  }
+
+  const [notificationTime, setNotificationTime] = useState(findNotificationValue(activityData.notification))
   const [showAllTags, setShowAllTags] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -197,11 +225,9 @@ const EditTaskScreen = () => {
 
   const activeDotIndex = getActiveDotIndex()
 
-  // Update the handleSave function in EditTaskScreen to include the new fields
+  // Update the handleSave function to make a proper PUT request
   const handleSave = async () => {
-    // Here you would save the activity to your data store
     if (!title.trim()) {
-      // You would typically show an error message here
       Alert.alert("Error", "Title is required")
       return
     }
@@ -233,32 +259,28 @@ const EditTaskScreen = () => {
       const notificationText = notificationOption ? notificationOption.label : "At time of event"
 
       // Extract date components for the API path
-      const [year, month, day] = activity.date.split("-")
+      const [year, month, day] = activityData.date.split("-")
 
       // Create payload - preserve existing Mood and Complete status
       const payload = {
-        createdAt: activity.createdAt || new Date().toISOString().replace("Z", "+07:00"),
         date: formattedDate,
         title: title,
         description: description || "",
-        withPartner: withPartner,
+        withPartner: isCoupleActivity,
         startTime: formatTimeString(startTime),
         endTime: formatTimeString(endTime),
         location: location || "",
-        Mood: activity.Mood || {
-          Score: "",
-          Description: "",
-        },
+        Mood: activityData.mood || {},
         Tag: tagName,
         Notification: notificationText,
-        Complete: activity.Complete || false,
+        Complete: activityData.complete || false,
       }
 
       console.log("Updating task data:", payload)
 
       // Send data to backend
       const API_URL = "https://amoro-backend-3gsl.onrender.com"
-      const response = await fetch(`${API_URL}/tasks/${user.id}/${year}/${month}/${day}/${activity.id}`, {
+      const response = await fetch(`${API_URL}/tasks/${user.id}/${year}/${month}/${day}/${activityId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -354,6 +376,8 @@ const EditTaskScreen = () => {
     }
   }
 
+  const [isCoupleActivity, setIsCoupleActivity] = useState(activityData.type === "couple")
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -369,10 +393,10 @@ const EditTaskScreen = () => {
           <View style={styles.switchContainer}>
             <Text style={[styles.switchLabel, { color: theme.colors.text }]}>With Partner</Text>
             <Switch
-              value={withPartner}
-              onValueChange={setWithPartner}
+              value={isCoupleActivity}
+              onValueChange={setIsCoupleActivity}
               trackColor={{ false: "#767577", true: theme.colors.coupleActivity }}
-              thumbColor={withPartner ? theme.colors.primary : "#f4f3f4"}
+              thumbColor={isCoupleActivity ? theme.colors.primary : "#f4f3f4"}
             />
           </View>
 
@@ -945,6 +969,17 @@ const styles = StyleSheet.create({
     lineHeight: 20, // Line height for better readability
     paddingLeft: 15, // Match the title input's left padding
     paddingBottom: 0, // Reduced padding to move text lower
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
   },
 })
 
