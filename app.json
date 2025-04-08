@@ -4,20 +4,32 @@
     "slug": "ProjectAmoro",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/img/demoicon.png",
+    "icon": "./assets/img/4.gif",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/img/splash-icon.png",
-      "resizeMode": "contain",
+      "image": "./assets/img/4.gif",
+      "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": "./assets/img/4.gif",
+      "splash": {
+        "image": "./assets/img/4.gif",
+        "resizeMode": "cover",
+        "backgroundColor": "#ffffff"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/img/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "icon": "./assets/img/4.gif",
+      "splash": {
+        "image": "./assets/img/4.gif",
+        "resizeMode": "cover",
         "backgroundColor": "#ffffff"
       }
     },
