@@ -1,53 +1,71 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, FlatList } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, FlatList, ImageBackground } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import { useTheme } from "../context/ThemeContext"
 import Button from "../components/Button"
+import { StackNavigationProp } from "@react-navigation/stack"
+import { RootStackParamList } from "../navigation/RootNavigator"
 
 const { width, height } = Dimensions.get("window")
 
-const introSlides = [
+type IntroSlide = {
+  id: string
+  title: string
+  description: string
+  backgroundImage: any
+}
+
+const introSlides: IntroSlide[] = [
   {
     id: "1",
     title: "Welcome to Amoro",
     description: "The perfect calendar app for couples to plan and share activities together.",
-    image: { uri: "/placeholder.svg?height=300&width=300" },
+    backgroundImage: require("../../assets/img/1.png"),
   },
   {
     id: "2",
     title: "Plan Together",
     description: "Create and manage activities with your partner. Stay in sync with each other's schedules.",
-    image: { uri: "/placeholder.svg?height=300&width=300" },
+    backgroundImage: require("../../assets/img/2.png"),
   },
   {
     id: "3",
     title: "Share Memories",
     description: "Rate and review your activities together. Create lasting memories of your time together.",
-    image: { uri: "/placeholder.svg?height=300&width=300" },
+    backgroundImage: require("../../assets/img/3.png"),
   },
   {
     id: "4",
     title: "Get Started",
     description: "Sign up now and invite your partner to join you on this journey!",
-    image: { uri: "/placeholder.svg?height=300&width=300" },
+    backgroundImage: require("../../assets/img/2.png"),
   },
 ]
 
+type NavigationProp = StackNavigationProp<RootStackParamList>
+
 const AmoroIntroScreen = () => {
-  const navigation = useNavigation()
+  const navigation = useNavigation<NavigationProp>()
   const { theme } = useTheme()
   const [currentIndex, setCurrentIndex] = useState(0)
-  const flatListRef = useRef<FlatList>(null)
+  const flatListRef = useRef<FlatList<IntroSlide>>(null)
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item }: { item: IntroSlide }) => {
     return (
-      <View style={styles.slide}>
-        <Image source={item.image} style={styles.image} resizeMode="contain" />
-        <Text style={[styles.title, { color: theme.colors.text }]}>{item.title}</Text>
-        <Text style={[styles.description, { color: theme.colors.secondaryText }]}>{item.description}</Text>
-      </View>
+      <ImageBackground 
+        source={item.backgroundImage}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        <View style={styles.overlay}>
+          <View style={styles.slide}>
+            <Text style={[styles.title, { color: theme.colors.text }]}>{item.title}</Text>
+            <Text style={[styles.description, { color: theme.colors.secondaryText }]}>{item.description}</Text>
+          </View>
+        </View>
+      </ImageBackground>
     )
   }
 
@@ -72,7 +90,7 @@ const AmoroIntroScreen = () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={styles.container}>
       <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
         <Text style={[styles.skipText, { color: theme.colors.primary }]}>Skip</Text>
       </TouchableOpacity>
@@ -118,6 +136,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  backgroundImage: {
+    flex: 1,
+    width: width,
+    height: height,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  },
   skipButton: {
     position: "absolute",
     top: 60,
@@ -135,27 +162,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 40,
   },
-  image: {
-    width: width * 0.8,
-    height: height * 0.4,
-    marginBottom: 40,
-  },
   title: {
     fontSize: 24,
     fontFamily: "Poppins-Bold",
     textAlign: "center",
     marginBottom: 20,
+    color: "#000000",
   },
   description: {
     fontSize: 16,
     fontFamily: "Poppins-Regular",
     textAlign: "center",
     marginBottom: 40,
+    color: "#333333",
   },
   pagination: {
     flexDirection: "row",
     justifyContent: "center",
     marginBottom: 40,
+    position: "absolute",
+    bottom: 100,
+    width: "100%",
   },
   paginationDot: {
     width: 10,
@@ -165,7 +192,9 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     alignItems: "center",
-    marginBottom: 50,
+    position: "absolute",
+    bottom: 40,
+    width: "100%",
   },
 })
 

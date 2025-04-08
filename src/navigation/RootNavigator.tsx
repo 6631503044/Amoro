@@ -1,4 +1,5 @@
 "use client"
+import React, { useState, useEffect } from "react"
 import { createStackNavigator } from "@react-navigation/stack"
 import { useAuth } from "../context/AuthContext"
 import AuthStack from "./AuthStack"
@@ -17,7 +18,6 @@ import ResetPasswordEmailScreen from "../screens/ResetPasswordEmailScreen"
 import PermissionsScreen from "../screens/PermissionsScreen"
 import AmoroIntroScreen from "../screens/AmoroIntroScreen"
 import AddPartnerScreen from "../screens/AddPartnerScreen"
-import { useState, useEffect } from "react"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Define the RootStackParamList to properly type the navigation
@@ -44,30 +44,10 @@ const Stack = createStackNavigator<RootStackParamList>()
 
 const RootNavigator = () => {
   const { user, loading } = useAuth()
-  const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null)
+  const [showIntro, setShowIntro] = useState(true)
 
-  useEffect(() => {
-    const checkFirstLaunch = async () => {
-      try {
-        const hasLaunched = await AsyncStorage.getItem("hasLaunched")
-        if (hasLaunched === null) {
-          // First time launching the app
-          await AsyncStorage.setItem("hasLaunched", "true")
-          setIsFirstLaunch(true)
-        } else {
-          setIsFirstLaunch(false)
-        }
-      } catch (error) {
-        console.error("Error checking first launch:", error)
-        setIsFirstLaunch(false)
-      }
-    }
-
-    checkFirstLaunch()
-  }, [])
-
-  // Show loading screen while checking authentication and first launch status
-  if (loading || isFirstLaunch === null) {
+  // Show loading screen while checking authentication
+  if (loading) {
     return null // You could return a loading screen here
   }
 
@@ -75,7 +55,7 @@ const RootNavigator = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
         <>
-          {isFirstLaunch && <Stack.Screen name="AmoroIntro" component={AmoroIntroScreen} />}
+          <Stack.Screen name="AmoroIntro" component={AmoroIntroScreen} />
           <Stack.Screen name="Auth" component={AuthStack} />
         </>
       ) : (

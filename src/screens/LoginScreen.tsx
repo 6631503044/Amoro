@@ -129,7 +129,7 @@ const LoginScreen = () => {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.logoContainer}>
-          <Image source={require("../../assets/img/Sathu.png")} style={styles.logo} resizeMode="contain" />
+          <Image source={require("../../assets/img/logo.jpg")} style={styles.logo} resizeMode="contain" />
           <Text style={[styles.appName, { color: theme.colors.primary }]}>Amoro</Text>
           <Text style={[styles.tagline, { color: theme.colors.secondaryText }]}>Calendar for Couples</Text>
         </View>
