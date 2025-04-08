@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState } from "react"
 import {
   View,
   Text,
@@ -10,8 +10,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Animated,
-  Modal,
   Alert,
 } from "react-native"
 import { useNavigation, useRoute } from "@react-navigation/native"
@@ -45,200 +43,66 @@ const NOTIFICATION_OPTIONS = [
   { id: "6", label: "1 day before", value: 1440 },
 ]
 
-// Remove the MOCK_ACTIVITY constant completely
-
-// Update the component to get activity data from route params
 const EditTaskScreen = () => {
   const navigation = useNavigation()
-  const route = useRoute()
   const { theme } = useTheme()
   const { user } = useAuth()
+  const route = useRoute()
 
   // Get the activity data from the route params
   const { activityId, activityData } = route.params || {}
 
-  // Check if we have the activity data
-  if (!activityData) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="close" size={24} color={theme.colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Edit Activity</Text>
-          <View style={{ width: 24 }} />
-        </View>
-        <View style={styles.loadingContainer}>
-          <Text style={[styles.errorText, { color: theme.colors.secondaryText }]}>
-            Activity data not found. Please try again.
-          </Text>
-        </View>
-      </View>
-    )
-  }
-
-  // Form state initialized with the received activity data
-  const [title, setTitle] = useState(activityData.title || "")
-  const [description, setDescription] = useState(activityData.description || "")
-  const [location, setLocation] = useState(activityData.location || "")
-  const [date, setDate] = useState(new Date(activityData.date))
-
-  // Handle time parsing safely
-  const parseTime = (timeString) => {
-    try {
-      // Try to parse the time in HH:MM format
-      const [hours, minutes] = timeString.split(":").map(Number)
-      const date = new Date()
-      date.setHours(hours, minutes, 0, 0)
-      return date
-    } catch (error) {
-      console.error("Error parsing time:", error)
-      return new Date()
-    }
-  }
-
-  const [startTime, setStartTime] = useState(parseTime(activityData.startTime || "00:00"))
-  const [endTime, setEndTime] = useState(parseTime(activityData.endTime || "23:59"))
-
-  // Find tag ID based on tag name
-  const findTagId = (tagName) => {
-    const tag = TAGS.find((t) => t.name.toLowerCase() === (tagName || "").toLowerCase())
-    return tag ? tag.id : null
-  }
-
-  const [selectedTag, setSelectedTag] = useState<string | null>(findTagId(activityData.tag))
-
-  // Find notification value based on notification text
-  const findNotificationValue = (notificationText) => {
-    const option = NOTIFICATION_OPTIONS.find((opt) => opt.label === notificationText)
-    return option ? option.value : 0
-  }
-
-  const [notificationTime, setNotificationTime] = useState(findNotificationValue(activityData.notification))
-  const [showAllTags, setShowAllTags] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [withPartner, setWithPartner] = useState(activityData?.type === "couple")
+  const [title, setTitle] = useState(activityData?.title || "")
+  const [description, setDescription] = useState(activityData?.description || "")
+  const [location, setLocation] = useState(activityData?.location || "")
+  const [date, setDate] = useState(new Date(activityData?.date) || new Date())
+  const [startTime, setStartTime] = useState(new Date(`2023-01-01T${activityData?.startTime}`) || new Date())
+  const [endTime, setEndTime] = useState(
+    new Date(`2023-01-01T${activityData?.endTime}`) || new Date(Date.now() + 60 * 60 * 1000),
+  ) // 1 hour later
+  const [selectedTag, setSelectedTag] = useState(activityData?.tag || null)
+  const [notificationTime, setNotificationTime] = useState(
+    NOTIFICATION_OPTIONS.find((option) => option.label === activityData?.notification)?.value || 0,
+  )
 
   // UI state
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showStartTimePicker, setShowStartTimePicker] = useState(false)
   const [showEndTimePicker, setShowEndTimePicker] = useState(false)
-  const [showNotificationOptions, setShowNotificationOptions] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  // Time picker state
-  const [selectedHours, setSelectedHours] = useState(startTime.getHours())
-  const [selectedMinutes, setSelectedMinutes] = useState(startTime.getMinutes())
-  const [isStartTime, setIsStartTime] = useState(true)
-
-  const scrollViewRef = useRef<ScrollView>(null)
-  const [scrollPosition, setScrollPosition] = useState(0)
-  const [scrollViewWidth, setScrollViewWidth] = useState(0)
-  const [contentWidth, setContentWidth] = useState(0)
-  const fadeAnim = useRef(new Animated.Value(1)).current
-
-  // Pulse animation for scroll indicator
-  useEffect(() => {
-    const pulseAnimation = Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 0.5,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-    ])
-
-    Animated.loop(pulseAnimation).start()
-
-    return () => {
-      fadeAnim.stopAnimation()
-    }
-  }, [fadeAnim])
-
-  // Handle date change from calendar picker
-  const handleDateChange = (newDate: Date) => {
-    setDate(newDate)
-  }
-
-  // Handle scroll events for the tags ScrollView
-  const handleTagsScroll = (event: {
-    nativeEvent: { contentOffset: { x: number }; layoutMeasurement: { width: number }; contentSize: { width: number } }
-  }) => {
-    const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent
-    setScrollPosition(contentOffset.x)
-    setScrollViewWidth(layoutMeasurement.width)
-    setContentWidth(contentSize.width)
-  }
-
-  // Calculate if we can scroll more to the right
-  const canScrollRight = contentWidth > scrollViewWidth && scrollPosition < contentWidth - scrollViewWidth
-
-  // Scroll to a specific section based on dot index
-  const scrollToSection = (dotIndex: number) => {
-    if (scrollViewRef.current && contentWidth > scrollViewWidth) {
-      const sectionWidth = (contentWidth - scrollViewWidth) / 2
-      let targetX = 0
-
-      if (dotIndex === 1) {
-        targetX = sectionWidth
-      } else if (dotIndex === 2) {
-        targetX = contentWidth - scrollViewWidth
-      }
-
-      scrollViewRef.current.scrollTo({ x: targetX, animated: true })
+  const formatDate = (date: Date) => {
+    try {
+      return `${date.toLocaleDateString("en-US", { month: "long" })} ${date.getDate()}, ${date.getFullYear()}`
+    } catch (error) {
+      console.error("Error formatting date:", error)
+      return "Invalid date"
     }
   }
 
-  // Scroll to the next section
-  const scrollToNextSection = () => {
-    if (scrollViewRef.current && contentWidth > scrollViewWidth) {
-      const sectionWidth = (contentWidth - scrollViewWidth) / 2
-
-      // Determine which section we're currently in
-      let targetX = 0
-      if (scrollPosition < sectionWidth / 2) {
-        // We're in the first section, scroll to second
-        targetX = sectionWidth
-      } else if (scrollPosition < sectionWidth * 1.5) {
-        // We're in the second section, scroll to third
-        targetX = contentWidth - scrollViewWidth
-      } else {
-        // We're already at the end, loop back to start
-        targetX = 0
-      }
-
-      scrollViewRef.current.scrollTo({ x: targetX, animated: true })
+  const formatTime = (date: Date) => {
+    try {
+      const hours = date.getHours()
+      const minutes = date.getMinutes()
+      const ampm = hours >= 12 ? "PM" : "AM"
+      const formattedHours = hours % 12 || 12
+      const formattedMinutes = minutes.toString().padStart(2, "0")
+      return `${formattedHours}:${formattedMinutes} ${ampm}`
+    } catch (error) {
+      console.error("Error formatting time:", error)
+      return "Invalid time"
     }
   }
 
-  // Get current active dot index based on scroll position
-  const getActiveDotIndex = () => {
-    if (contentWidth <= scrollViewWidth) return 0
-
-    const sectionWidth = (contentWidth - scrollViewWidth) / 2
-    if (scrollPosition < sectionWidth / 2) return 0
-    if (scrollPosition < sectionWidth * 1.5) return 1
-    return 2
-  }
-
-  const activeDotIndex = getActiveDotIndex()
-
-  // Update the handleSave function to make a proper PUT request
   const handleSave = async () => {
-    if (!title.trim()) {
-      Alert.alert("Error", "Title is required")
+    if (!user || !user.id) {
+      Alert.alert("Error", "User not authenticated")
       return
     }
 
     try {
       setLoading(true)
-
-      if (!user || !user.id) {
-        console.error("User not authenticated")
-        return
-      }
 
       // Format the date to YYYY-MM-DD
       const formattedDate = date.toISOString().split("T")[0]
@@ -254,33 +118,36 @@ const EditTaskScreen = () => {
       const selectedTagObject = TAGS.find((tag) => tag.id === selectedTag)
       const tagName = selectedTagObject ? selectedTagObject.name : ""
 
-      // Get the notification text
+      // Get the notification text - FIX: Use notificationOption.label instead of option.label
       const notificationOption = NOTIFICATION_OPTIONS.find((option) => option.value === notificationTime)
       const notificationText = notificationOption ? notificationOption.label : "At time of event"
 
-      // Extract date components for the API path
-      const [year, month, day] = activityData.date.split("-")
-
-      // Create payload - preserve existing Mood and Complete status
+      // Create payload
       const payload = {
         date: formattedDate,
+        olddate: activityData.date, // Adding olddate field with the original date
         title: title,
         description: description || "",
-        withPartner: isCoupleActivity,
+        withPartner: withPartner,
         startTime: formatTimeString(startTime),
         endTime: formatTimeString(endTime),
         location: location || "",
-        Mood: activityData.mood || {},
-        Tag: tagName,
+        Mood: {
+          Description: "",
+          Score: "",
+        },
+        Tag: {
+          name: tagName || "",
+        },
         Notification: notificationText,
         Complete: activityData.complete || false,
       }
 
-      console.log("Updating task data:", payload)
+      console.log("Sending task update:", payload)
 
-      // Send data to backend
+      // Send PUT request to update the task
       const API_URL = "https://amoro-backend-3gsl.onrender.com"
-      const response = await fetch(`${API_URL}/tasks/${user.id}/${year}/${month}/${day}/${activityId}`, {
+      const response = await fetch(`${API_URL}/tasks/${user.id}/${activityId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -292,91 +159,18 @@ const EditTaskScreen = () => {
         throw new Error(`API request failed with status ${response.status}`)
       }
 
-      const responseData = await response.json()
-      console.log("Task updated successfully:", responseData)
-
       // Set flag to refresh home screen data
       await AsyncStorage.setItem("refreshHomeData", "true")
 
       // Navigate back on success
       navigation.goBack()
     } catch (error) {
-      console.error("Error updating activity:", error)
-      Alert.alert("Error", "Failed to update activity. Please try again.", [{ text: "OK" }])
+      console.error("Error saving activity:", error)
+      Alert.alert("Error", "Failed to save activity. Please try again.")
     } finally {
       setLoading(false)
     }
   }
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-  }
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    })
-  }
-
-  const getSelectedNotificationLabel = () => {
-    const option = NOTIFICATION_OPTIONS.find((opt) => opt.value === notificationTime)
-    return option ? option.label : NOTIFICATION_OPTIONS[0].label
-  }
-
-  // Get visible tags (first 6 if not showing all)
-  const visibleTags = showAllTags ? TAGS : TAGS.slice(0, 6)
-
-  // Generate hours for time picker
-  const generateHours = () => {
-    const hours = []
-    for (let i = 0; i < 24; i++) {
-      const displayHour = i % 12 || 12
-      const ampm = i >= 12 ? "PM" : "AM"
-      hours.push({ value: i, display: `${displayHour} ${ampm}` })
-    }
-    return hours
-  }
-
-  // Generate minutes for time picker
-  const generateMinutes = () => {
-    const minutes = []
-    for (let i = 0; i < 60; i += 5) {
-      minutes.push({ value: i, display: i.toString().padStart(2, "0") })
-    }
-    return minutes
-  }
-
-  // Handle time selection
-  const handleTimeSelection = (hours: number, minutes: number) => {
-    const newTime = new Date(isStartTime ? startTime : endTime)
-    newTime.setHours(hours)
-    newTime.setMinutes(minutes)
-
-    if (isStartTime) {
-      setStartTime(newTime)
-
-      // Ensure end time is after start time
-      if (newTime > endTime) {
-        const newEndTime = new Date(newTime)
-        newEndTime.setHours(newTime.getHours() + 1)
-        setEndTime(newEndTime)
-      }
-    } else {
-      // Ensure end time is after start time
-      if (newTime < startTime) {
-        newTime.setDate(newTime.getDate() + 1)
-      }
-      setEndTime(newTime)
-    }
-  }
-
-  const [isCoupleActivity, setIsCoupleActivity] = useState(activityData.type === "couple")
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -393,10 +187,10 @@ const EditTaskScreen = () => {
           <View style={styles.switchContainer}>
             <Text style={[styles.switchLabel, { color: theme.colors.text }]}>With Partner</Text>
             <Switch
-              value={isCoupleActivity}
-              onValueChange={setIsCoupleActivity}
-              trackColor={{ false: "#767577", true: theme.colors.coupleActivity }}
-              thumbColor={isCoupleActivity ? theme.colors.primary : "#f4f3f4"}
+              value={withPartner}
+              onValueChange={setWithPartner}
+              trackColor={{ false: "#767577", true: theme.colors.coupleActivity || "#f4f3f4" }}
+              thumbColor={withPartner ? theme.colors.primary : "#f4f3f4"}
             />
           </View>
 
@@ -431,7 +225,7 @@ const EditTaskScreen = () => {
             visible={showDatePicker}
             onClose={() => setShowDatePicker(false)}
             selectedDate={date}
-            onDateChange={handleDateChange}
+            onDateChange={(newDate) => setDate(newDate)}
             title="Select Date"
           />
 
@@ -446,12 +240,7 @@ const EditTaskScreen = () => {
           <View style={styles.timeSelectionRow}>
             <TouchableOpacity
               style={[styles.timeSelector, { borderColor: theme.colors.border }]}
-              onPress={() => {
-                setIsStartTime(true)
-                setSelectedHours(startTime.getHours())
-                setSelectedMinutes(startTime.getMinutes())
-                setShowStartTimePicker(true)
-              }}
+              onPress={() => setShowStartTimePicker(true)}
             >
               <Text style={[styles.timeSelectorLabel, { color: theme.colors.text }]}>Start Time</Text>
               <View style={styles.timeValue}>
@@ -462,12 +251,7 @@ const EditTaskScreen = () => {
 
             <TouchableOpacity
               style={[styles.timeSelector, { borderColor: theme.colors.border }]}
-              onPress={() => {
-                setIsStartTime(false)
-                setSelectedHours(endTime.getHours())
-                setSelectedMinutes(endTime.getMinutes())
-                setShowEndTimePicker(true)
-              }}
+              onPress={() => setShowEndTimePicker(true)}
             >
               <Text style={[styles.timeSelectorLabel, { color: theme.colors.text }]}>End Time</Text>
               <View style={styles.timeValue}>
@@ -477,240 +261,46 @@ const EditTaskScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <Modal
-            visible={showStartTimePicker || showEndTimePicker}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => {
-              setShowStartTimePicker(false)
-              setShowEndTimePicker(false)
-            }}
-          >
-            <View style={styles.datePickerContainer}>
-              <TouchableOpacity
-                style={styles.datePickerBackdrop}
-                onPress={() => {
-                  setShowStartTimePicker(false)
-                  setShowEndTimePicker(false)
-                }}
-              />
-              <View style={[styles.datePickerContent, { backgroundColor: theme.colors.card }]}>
-                <Text style={[styles.datePickerTitle, { color: theme.colors.text }]}>
-                  {isStartTime ? "Select Start Time" : "Select End Time"}
-                </Text>
-
-                <View style={styles.timePickerContainer}>
-                  {/* Hours */}
-                  <View style={styles.timePickerColumn}>
-                    <Text style={[styles.timePickerLabel, { color: theme.colors.secondaryText }]}>Hour</Text>
-                    <ScrollView style={styles.timePickerScroll}>
-                      {generateHours().map((hour, index) => (
-                        <TouchableOpacity
-                          key={index}
-                          style={[
-                            styles.timePickerItem,
-                            selectedHours === hour.value && {
-                              backgroundColor: `${theme.colors.primary}20`,
-                            },
-                          ]}
-                          onPress={() => setSelectedHours(hour.value)}
-                        >
-                          <Text
-                            style={[
-                              styles.timePickerItemText,
-                              { color: theme.colors.text },
-                              selectedHours === hour.value && {
-                                color: theme.colors.primary,
-                                fontFamily: "Poppins-SemiBold",
-                              },
-                            ]}
-                          >
-                            {hour.display}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-
-                  {/* Minutes */}
-                  <View style={styles.timePickerColumn}>
-                    <Text style={[styles.timePickerLabel, { color: theme.colors.secondaryText }]}>Minute</Text>
-                    <ScrollView style={styles.timePickerScroll}>
-                      {generateMinutes().map((minute, index) => (
-                        <TouchableOpacity
-                          key={index}
-                          style={[
-                            styles.timePickerItem,
-                            selectedMinutes === minute.value && {
-                              backgroundColor: `${theme.colors.primary}20`,
-                            },
-                          ]}
-                          onPress={() => setSelectedMinutes(minute.value)}
-                        >
-                          <Text
-                            style={[
-                              styles.timePickerItemText,
-                              { color: theme.colors.text },
-                              selectedMinutes === minute.value && {
-                                color: theme.colors.primary,
-                                fontFamily: "Poppins-SemiBold",
-                              },
-                            ]}
-                          >
-                            {minute.display}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.datePickerButton, { backgroundColor: theme.colors.primary }]}
-                  onPress={() => {
-                    handleTimeSelection(selectedHours, selectedMinutes)
-                    setShowStartTimePicker(false)
-                    setShowEndTimePicker(false)
-                  }}
-                >
-                  <Text style={styles.datePickerButtonText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
-
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Add Tag</Text>
 
           <View style={styles.tagsContainer}>
-            <ScrollView
-              ref={scrollViewRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              onScroll={handleTagsScroll}
-              scrollEventThrottle={16}
-              style={styles.tagsScrollView}
-              contentContainerStyle={styles.tagsScrollViewContent}
-            >
-              {TAGS.map((tag) => (
-                <TouchableOpacity
-                  key={tag.id}
+            {TAGS.map((tag) => (
+              <TouchableOpacity
+                key={tag.id}
+                style={[
+                  styles.tagItem,
+                  { borderColor: theme.colors.border },
+                  selectedTag === tag.name && {
+                    backgroundColor: `${theme.colors.primary}20`,
+                    borderColor: theme.colors.primary,
+                  },
+                ]}
+                onPress={() => setSelectedTag(tag.name === selectedTag ? null : tag.name)}
+              >
+                <Text style={styles.tagEmoji}>{tag.emoji}</Text>
+                <Text
                   style={[
-                    styles.tagItem,
-                    { borderColor: theme.colors.border },
-                    selectedTag === tag.id && {
-                      backgroundColor: `${theme.colors.primary}20`,
-                      borderColor: theme.colors.primary,
-                    },
+                    styles.tagName,
+                    { color: theme.colors.text },
+                    selectedTag === tag.name && { color: theme.colors.primary },
                   ]}
-                  onPress={() => setSelectedTag(tag.id === selectedTag ? null : tag.id)}
                 >
-                  <Text style={styles.tagEmoji}>{tag.emoji}</Text>
-                  <Text
-                    style={[
-                      styles.tagName,
-                      { color: theme.colors.text },
-                      selectedTag === tag.id && { color: theme.colors.primary },
-                    ]}
-                  >
-                    {tag.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            {/* Clickable scroll indicator arrow */}
-            {canScrollRight && (
-              <TouchableOpacity onPress={scrollToNextSection} activeOpacity={0.7} style={styles.scrollIndicatorButton}>
-                <Animated.View
-                  style={[styles.scrollIndicator, { opacity: fadeAnim, backgroundColor: theme.colors.primary }]}
-                >
-                  <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
-                </Animated.View>
+                  {tag.name}
+                </Text>
               </TouchableOpacity>
-            )}
-
-            {/* Clickable scroll progress dots */}
-            {contentWidth > scrollViewWidth && (
-              <View style={styles.scrollProgressContainer}>
-                <View style={styles.scrollProgressDots}>
-                  {[0, 1, 2].map((dotIndex) => (
-                    <TouchableOpacity
-                      key={dotIndex}
-                      onPress={() => scrollToSection(dotIndex)}
-                      style={styles.scrollDotTouchable}
-                    >
-                      <View
-                        style={[
-                          styles.scrollProgressDot,
-                          {
-                            backgroundColor: activeDotIndex === dotIndex ? theme.colors.primary : theme.colors.border,
-                            width: activeDotIndex === dotIndex ? 10 : 6,
-                            height: activeDotIndex === dotIndex ? 6 : 6,
-                          },
-                        ]}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
+            ))}
           </View>
 
-          <TouchableOpacity
-            style={[styles.dateTimeSelector, { borderColor: theme.colors.border }]}
-            onPress={() => setShowNotificationOptions(!showNotificationOptions)}
-          >
+          <TouchableOpacity style={[styles.dateTimeSelector, { borderColor: theme.colors.border }]}>
             <Text style={[styles.dateTimeSelectorLabel, { color: theme.colors.text }]}>Notification</Text>
             <View style={styles.dateTimeValue}>
-              <Text style={[styles.dateTimeValueText, { color: theme.colors.text }]}>
-                {getSelectedNotificationLabel()}
-              </Text>
-              <Ionicons
-                name={showNotificationOptions ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={theme.colors.secondaryText}
-              />
+              <Text style={[styles.dateTimeValueText, { color: theme.colors.text }]}>At time of event</Text>
+              <Ionicons name="chevron-down" size={20} color={theme.colors.secondaryText} />
             </View>
           </TouchableOpacity>
 
-          {showNotificationOptions && (
-            <View style={[styles.notificationOptions, { backgroundColor: theme.colors.card }]}>
-              {NOTIFICATION_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[
-                    styles.notificationOption,
-                    notificationTime === option.value && {
-                      backgroundColor: `${theme.colors.primary}20`,
-                    },
-                  ]}
-                  onPress={() => {
-                    setNotificationTime(option.value)
-                    setShowNotificationOptions(false)
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.notificationOptionText,
-                      { color: theme.colors.text },
-                      notificationTime === option.value && {
-                        color: theme.colors.primary,
-                        fontFamily: "Poppins-SemiBold",
-                      },
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  {notificationTime === option.value && (
-                    <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
           <View style={styles.buttonContainer}>
-            <Button title="Save Changes" onPress={handleSave} />
+            <Button title={loading ? "Saving..." : "Save Activity"} onPress={handleSave} disabled={loading} />
           </View>
         </ScrollView>
       </View>
@@ -734,6 +324,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
+    fontFamily: "Poppins-SemiBold",
+  },
+  saveButton: {
+    fontSize: 16,
     fontFamily: "Poppins-SemiBold",
   },
   formContainer: {
@@ -799,84 +393,10 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-SemiBold",
     marginBottom: 15,
   },
-  notificationOptions: {
-    borderRadius: 8,
-    marginBottom: 15,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-  },
-  notificationOption: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
-  },
-  notificationOptionText: {
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
-  },
-  buttonContainer: {
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  datePickerContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1000,
-  },
-  datePickerBackdrop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  datePickerContent: {
-    width: "80%",
-    padding: 20,
-    borderRadius: 12,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  datePickerTitle: {
-    fontSize: 18,
-    fontFamily: "Poppins-SemiBold",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  datePickerButton: {
-    paddingVertical: 10,
-    borderRadius: 25,
-    alignItems: "center",
-  },
-  datePickerButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Poppins-Medium",
-  },
   tagsContainer: {
-    position: "relative",
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginBottom: 20,
-  },
-  tagsScrollView: {
-    flexGrow: 0,
-  },
-  tagsScrollViewContent: {
-    paddingRight: 40, // Space for the scroll indicator
   },
   tagItem: {
     flexDirection: "row",
@@ -896,71 +416,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Poppins-Medium",
   },
-  scrollIndicatorButton: {
-    position: "absolute",
-    right: 0,
-    top: "50%",
-    transform: [{ translateY: -12 }],
-    width: 30,
-    height: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 10,
-  },
-  scrollIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  scrollProgressContainer: {
-    alignItems: "center",
-    marginTop: 8,
-  },
-  scrollProgressDots: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scrollDotTouchable: {
-    padding: 8, // Larger touch target
-    marginHorizontal: 2,
-  },
-  scrollProgressDot: {
-    borderRadius: 3,
-    marginHorizontal: 1,
-  },
-  timePickerContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  timePickerColumn: {
-    width: "48%",
-  },
-  timePickerLabel: {
-    fontSize: 14,
-    fontFamily: "Poppins-Medium",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  timePickerScroll: {
-    height: 200,
-  },
-  timePickerItem: {
-    padding: 10,
-    borderRadius: 8,
-  },
-  timePickerItemText: {
-    fontSize: 14,
-    fontFamily: "Poppins-Regular",
-    textAlign: "center",
+  buttonContainer: {
+    marginTop: 20,
+    marginBottom: 40,
   },
   descriptionInput: {
     textAlignVertical: "center",
@@ -970,18 +428,6 @@ const styles = StyleSheet.create({
     paddingLeft: 15, // Match the title input's left padding
     paddingBottom: 0, // Reduced padding to move text lower
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    fontFamily: "Poppins-Regular",
-    textAlign: "center",
-  },
 })
 
 export default EditTaskScreen
-

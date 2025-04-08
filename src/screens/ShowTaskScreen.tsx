@@ -77,7 +77,9 @@ const ShowTaskScreen = () => {
           Description: "",
           Score: "",
         },
-        Tag: activityData.tag ? { name: activityData.tag } : { name: "" },
+        Tag: {
+          name: typeof activityData.tag === "string" ? activityData.tag : "",
+        },
         Notification: activityData.notification || "",
         Complete: true,
       }
@@ -109,6 +111,23 @@ const ShowTaskScreen = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Helper function to safely display tag information
+  const getTagDisplay = () => {
+    if (!activityData.tag) return "None"
+
+    // If tag is an object with a name property
+    if (typeof activityData.tag === "object" && activityData.tag.name) {
+      return activityData.tag.name
+    }
+
+    // If tag is a string
+    if (typeof activityData.tag === "string") {
+      return activityData.tag
+    }
+
+    return "None"
   }
 
   return (
@@ -176,7 +195,7 @@ const ShowTaskScreen = () => {
           <View style={styles.sectionRow}>
             <Ionicons name="pricetag-outline" size={20} color={theme.colors.primary} />
             <Text style={[styles.sectionLabel, { color: theme.colors.secondaryText }]}>Tag</Text>
-            <Text style={[styles.sectionContent, { color: theme.colors.text }]}>{activityData.tag || "None"}</Text>
+            <Text style={[styles.sectionContent, { color: theme.colors.text }]}>{getTagDisplay()}</Text>
           </View>
         </View>
 
