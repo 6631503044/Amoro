@@ -59,18 +59,34 @@ const ShowTaskScreen = () => {
     try {
       setLoading(true)
 
-      // Extract date components for the API path
-      const [year, month, day] = activityData.date.split("-")
+      console.log("Debug - API Request Parameters:", {
+        activityData,
+      })
 
-      // Create updated task data with Complete set to true
+      // Create updated task data with the exact format required by the API
       const updatedTaskData = {
-        ...activityData.originalData,
+        date: activityData.date,
+        olddate: activityData.date, // Adding olddate field with the same value as date
+        title: activityData.title,
+        description: activityData.description || "",
+        withPartner: activityData.type === "couple",
+        startTime: activityData.startTime,
+        endTime: activityData.endTime,
+        location: activityData.location || "",
+        Mood: {
+          Description: "",
+          Score: "",
+        },
+        Tag: activityData.tag ? { name: activityData.tag } : { name: "" },
+        Notification: activityData.notification || "",
         Complete: true,
       }
 
+      console.log("Sending task update:", updatedTaskData)
+
       // Send PUT request to update the task
       const API_URL = "https://amoro-backend-3gsl.onrender.com"
-      const response = await fetch(`${API_URL}/tasks/${user.id}/${year}/${month}/${day}/${activityId}`, {
+      const response = await fetch(`${API_URL}/tasks/${user.id}/${activityId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -288,4 +304,3 @@ const styles = StyleSheet.create({
 })
 
 export default ShowTaskScreen
-
