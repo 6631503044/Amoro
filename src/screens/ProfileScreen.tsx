@@ -27,7 +27,6 @@ const ProfileScreen = () => {
   const { theme, toggleTheme } = useTheme()
   const { user, signOut } = useAuth()
   const { locale, setLocale, t } = useLanguage()
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [showLanguages, setShowLanguages] = useState(false)
   const [showInvitations, setShowInvitations] = useState(false)
   const [selectedLocale, setSelectedLocale] = useState(locale)
@@ -150,28 +149,6 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
-          style={[styles.partnerSection, { backgroundColor: theme.colors.card, marginTop: 10 }]}
-          onPress={() => setShowInvitations(true)}
-        >
-          <View style={styles.partnerInfo}>
-            <View style={[styles.addPartnerIcon, { backgroundColor: `${theme.colors.primary}20` }]}>
-              <Ionicons name="mail" size={24} color={theme.colors.primary} />
-            </View>
-            <View>
-              <Text style={[styles.partnerName, { color: theme.colors.text }]}>{t("invitations")}</Text>
-              <Text style={[styles.partnerLabel, { color: theme.colors.secondaryText }]}>
-                {hasInvitation ? t("youHaveNewInvitation") : t("noNewInvitations")}
-              </Text>
-            </View>
-          </View>
-          {hasInvitation && (
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationText}>1</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
         <View style={styles.settingsSection}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t("account")}</Text>
 
@@ -213,19 +190,6 @@ const ProfileScreen = () => {
               onValueChange={toggleTheme}
               trackColor={{ false: "#767577", true: `${theme.colors.primary}80` }}
               thumbColor={theme.mode === "dark" ? theme.colors.primary : "#f4f3f4"}
-            />
-          </View>
-
-          <View style={[styles.settingsItem, { backgroundColor: theme.colors.card }]}>
-            <View style={styles.settingsItemLeft}>
-              <Ionicons name="notifications-outline" size={24} color={theme.colors.primary} />
-              <Text style={[styles.settingsItemText, { color: theme.colors.text }]}>{t("notifications")}</Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: "#767577", true: `${theme.colors.primary}80` }}
-              thumbColor={notificationsEnabled ? theme.colors.primary : "#f4f3f4"}
             />
           </View>
 
@@ -499,19 +463,6 @@ const styles = StyleSheet.create({
     color: "red",
     marginLeft: 10,
   },
-  notificationBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "red",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  notificationText: {
-    color: "white",
-    fontSize: 12,
-    fontFamily: "Poppins-Bold",
-  },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
@@ -603,4 +554,3 @@ const styles = StyleSheet.create({
 })
 
 export default ProfileScreen
-
