@@ -1,92 +1,12 @@
 "use client"
-import { useState } from "react"
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal } from "react-native"
-import { useNavigation } from "@react-navigation/native"
+import { useState, useCallback, useEffect } from "react"
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, ActivityIndicator } from "react-native"
+import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import { useLanguage } from "../context/LanguageContext"
-
-// Mock data for past activities
-const PAST_ACTIVITIES = [
-  {
-    id: "1",
-    title: "Dinner at Italian Restaurant",
-    date: "2023-06-10",
-    type: "couple",
-    tag: "date",
-    emoji: "🍝",
-    reviewed: true,
-    rating: 5,
-  },
-  {
-    id: "2",
-    title: "Movie Night",
-    date: "2023-06-08",
-    type: "couple",
-    tag: "entertainment",
-    emoji: "🎬",
-    reviewed: true,
-    rating: 4,
-  },
-  {
-    id: "3",
-    title: "Beach Day",
-    date: "2023-06-05",
-    type: "couple",
-    tag: "travel",
-    emoji: "🏖️",
-    reviewed: false,
-  },
-  {
-    id: "4",
-    title: "Hiking Trip",
-    date: "2023-06-01",
-    type: "couple",
-    tag: "exercise",
-    emoji: "🥾",
-    reviewed: true,
-    rating: 5,
-  },
-  {
-    id: "5",
-    title: "Cooking Together",
-    date: "2023-05-28",
-    type: "couple",
-    tag: "food",
-    emoji: "👨‍🍳",
-    reviewed: true,
-    rating: 3,
-  },
-  {
-    id: "6",
-    title: "Meditation Session",
-    date: "2023-05-25",
-    type: "single",
-    tag: "wellness",
-    emoji: "🧘",
-    reviewed: true,
-    rating: 5,
-  },
-  {
-    id: "7",
-    title: "Reading a Book",
-    date: "2023-05-22",
-    type: "single",
-    tag: "entertainment",
-    emoji: "📚",
-    reviewed: true,
-    rating: 4,
-  },
-  {
-    id: "8",
-    title: "Solo Hike",
-    date: "2023-05-20",
-    type: "single",
-    tag: "exercise",
-    emoji: "🥾",
-    reviewed: false,
-  },
-]
+import { useAuth } from "../context/AuthContext"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 type FilterType = "day" | "week" | "month"
 type ActivityType = "all" | "single" | "couple"
@@ -95,12 +15,233 @@ const MoodsScreen = () => {
   const navigation = useNavigation()
   const { theme } = useTheme()
   const { t, formatDate } = useLanguage()
+  const { user } = useAuth()
   const [timeFilter, setTimeFilter] = useState<FilterType>("day")
   const [typeFilter, setTypeFilter] = useState<ActivityType>("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [dropdownVisible, setDropdownVisible] = useState(false)
 
-  const filteredActivities = PAST_ACTIVITIES.filter((activity) => {
+  // Add state for activities, loading, and error
+  const [activities, setActivities] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [initialLoadDone, setInitialLoadDone] = useState(false)
+
+  // Cache for storing fetched data
+  const [dataCache, setDataCache] = useState({})
+
+  const fetchActivities = async (forceRefresh = false) => {
+    if (!user || !user.id) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const today = new Date()
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, "0")
+      const cacheKey = `${year}-${month}`
+
+      // Check if data is cached and not a forced refresh
+      if (!forceRefresh && dataCache[cacheKey]) {
+        console.log("Using cached data for", cacheKey)
+        setActivities(dataCache[cacheKey])
+        setLoading(false)
+        setInitialLoadDone(true)
+        return
+      }
+
+      // Construct the API URL based on the timeFilter
+      const API_URL = "https://amoro-backend-3gsl.onrender.com"
+      const endpoint = `${API_URL}/tasks/${user.id}/${year}/${month}`
+
+      console.log("Fetching from endpoint:", endpoint)
+      const response = await fetch(endpoint)
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // No tasks found for this period
+          setActivities([])
+          setLoading(false)
+          setInitialLoadDone(true)
+          return
+        }
+        throw new Error(`API request failed with status ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("API response:", data)
+
+      const completedActivities = []
+
+      // Process the data - handle array response format
+      if (Array.isArray(data)) {
+        data.forEach((item) => {
+          if (item && item.data) {
+            const taskData = item.data
+            const taskId = item.taskId || item.id
+
+            // Only include completed tasks
+            if (taskData.Complete === true || taskData.complete === true) {
+              // Get emoji based on tag
+              let emoji = "📝" // Default emoji
+              const tag = taskData.Tag || taskData.tag || ""
+              let tagName = ""
+
+              if (typeof tag === "string") {
+                tagName = tag
+              } else if (tag && typeof tag === "object" && tag.name) {
+                tagName = tag.name
+              }
+
+              switch (tagName) {
+                case "Date":
+                  emoji = "❤️"
+                  break
+                case "Work":
+                  emoji = "💼"
+                  break
+                case "Exercise":
+                  emoji = "🏃‍♂️"
+                  break
+                case "Entertainment":
+                  emoji = "🎬"
+                  break
+                case "Travel":
+                  emoji = "✈️"
+                  break
+                case "Food":
+                  emoji = "🍽️"
+                  break
+                case "Shopping":
+                  emoji = "🛍️"
+                  break
+                case "Study":
+                  emoji = "📚"
+                  break
+              }
+
+              completedActivities.push({
+                id: taskId,
+                title: taskData.title,
+                startTime: taskData.startTime || "00:00",
+                endTime: taskData.endTime || "23:59",
+                date: taskData.date,
+                type: taskData.withPartner ? "couple" : "personal",
+                tag: tagName,
+                emoji: emoji,
+                reviewed: taskData.Mood && (taskData.Mood.Score || taskData.Mood.Description),
+                rating: taskData.Mood && taskData.Mood.Score ? Number.parseInt(taskData.Mood.Score) : 0,
+                description: taskData.description,
+                location: taskData.location,
+              })
+            }
+          }
+        })
+      }
+
+      // Cache the fetched data
+      setDataCache((prevCache) => ({
+        ...prevCache,
+        [cacheKey]: completedActivities,
+      }))
+
+      setActivities(completedActivities)
+      setInitialLoadDone(true)
+
+      console.log("Processed activities:", completedActivities.length)
+    } catch (err) {
+      console.error("Error fetching activities:", err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Update the handleTimeFilterChange function to properly filter by time period
+  // The current implementation sets the filter but doesn't actually filter the data
+
+  const handleTimeFilterChange = (newFilter: FilterType) => {
+    setTimeFilter(newFilter)
+
+    // Apply time-based filtering to the cached data
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, "0")
+    const cacheKey = `${year}-${month}`
+
+    // Get data from cache if available
+    const cachedData = dataCache[cacheKey] || []
+
+    if (cachedData.length > 0) {
+      let filteredData = [...cachedData]
+
+      if (newFilter === "day") {
+        // Filter for today only
+        const todayStr = today.toISOString().split("T")[0]
+        filteredData = cachedData.filter((activity) => activity.date === todayStr)
+      } else if (newFilter === "week") {
+        // Filter for current week
+        const startOfWeek = new Date(today)
+        startOfWeek.setDate(today.getDate() - today.getDay()) // Start of week (Sunday)
+        startOfWeek.setHours(0, 0, 0, 0)
+
+        const endOfWeek = new Date(startOfWeek)
+        endOfWeek.setDate(startOfWeek.getDate() + 6) // End of week (Saturday)
+        endOfWeek.setHours(23, 59, 59, 999)
+
+        filteredData = cachedData.filter((activity) => {
+          const activityDate = new Date(activity.date)
+          return activityDate >= startOfWeek && activityDate <= endOfWeek
+        })
+      }
+      // For "month", we use all data from the current month (already filtered by API)
+
+      setActivities(filteredData)
+    } else {
+      // If no cached data, trigger a fetch
+      fetchActivities(true)
+    }
+  }
+
+  // Add a useEffect to apply time filter when activities change
+  useEffect(() => {
+    // Skip if no activities or initial load
+    if (activities.length === 0 || !initialLoadDone) return
+
+    handleTimeFilterChange(timeFilter)
+  }, [initialLoadDone])
+
+  // Update the useFocusEffect to include user?.id in dependencies
+  useFocusEffect(
+    useCallback(() => {
+      const checkRefreshNeeded = async () => {
+        try {
+          const refreshFlag = await AsyncStorage.getItem("refreshMoodsData")
+          if (refreshFlag === "true") {
+            // Clear the flag
+            await AsyncStorage.setItem("refreshMoodsData", "false")
+            // Force refresh the current month's data
+            fetchActivities(true)
+          } else {
+            // Normal fetch
+            fetchActivities()
+          }
+        } catch (error) {
+          console.error("Error checking refresh flag:", error)
+        }
+      }
+
+      checkRefreshNeeded()
+
+      // Return cleanup function
+      return () => {
+        // Any cleanup needed
+      }
+    }, [user?.id]), // Add user?.id as dependency
+  )
+
+  const filteredActivities = activities.filter((activity) => {
     // Filter by search query
     const matchesSearch = activity.title.toLowerCase().includes(searchQuery.toLowerCase())
 
@@ -311,7 +452,7 @@ const MoodsScreen = () => {
       <View style={styles.timeFilterContainer}>
         <TouchableOpacity
           style={[styles.timeFilterButton, timeFilter === "day" && { backgroundColor: theme.colors.primary }]}
-          onPress={() => setTimeFilter("day")}
+          onPress={() => handleTimeFilterChange("day")}
         >
           <Text style={[styles.filterButtonText, { color: timeFilter === "day" ? "#FFFFFF" : theme.colors.text }]}>
             {t("day")}
@@ -320,7 +461,7 @@ const MoodsScreen = () => {
 
         <TouchableOpacity
           style={[styles.timeFilterButton, timeFilter === "week" && { backgroundColor: theme.colors.primary }]}
-          onPress={() => setTimeFilter("week")}
+          onPress={() => handleTimeFilterChange("week")}
         >
           <Text style={[styles.filterButtonText, { color: timeFilter === "week" ? "#FFFFFF" : theme.colors.text }]}>
             {t("week")}
@@ -329,7 +470,7 @@ const MoodsScreen = () => {
 
         <TouchableOpacity
           style={[styles.timeFilterButton, timeFilter === "month" && { backgroundColor: theme.colors.primary }]}
-          onPress={() => setTimeFilter("month")}
+          onPress={() => handleTimeFilterChange("month")}
         >
           <Text style={[styles.filterButtonText, { color: timeFilter === "month" ? "#FFFFFF" : theme.colors.text }]}>
             {t("month")}
@@ -337,18 +478,41 @@ const MoodsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={filteredActivities}
-        keyExtractor={(item) => item.id}
-        renderItem={renderActivityItem}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.colors.secondaryText }]}>{t("noActivitiesFound")}</Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: theme.colors.secondaryText }]}>
+            Error loading activities: {error}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredActivities}
+          keyExtractor={(item) => item.id}
+          renderItem={renderActivityItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="checkmark-circle-outline" size={60} color={theme.colors.secondaryText} />
+              <Text
+                style={[
+                  styles.emptyText,
+                  { color: theme.colors.text, fontFamily: "Poppins-Medium", fontSize: 18, marginTop: 20 },
+                ]}
+              >
+                No Tasks to Review
+              </Text>
+              <Text style={[styles.emptyText, { color: theme.colors.secondaryText }]}>
+                Complete tasks will appear here for you to review and rate
+              </Text>
+            </View>
+          }
+        />
+      )}
     </View>
   )
 }
@@ -563,7 +727,22 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
     textAlign: "center",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
+  },
 })
 
 export default MoodsScreen
-
