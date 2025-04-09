@@ -1,12 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import Input from "../components/Input"
 import Button from "../components/Button"
+import { auth } from "../../firebaseConfig"
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth"
 
 const ChangePasswordScreen = () => {
   const navigation = useNavigation()
@@ -50,18 +52,66 @@ const ChangePasswordScreen = () => {
     return valid
   }
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (validateForm()) {
       setLoading(true)
-      // Simulate API call
-      setTimeout(() => {
+
+      try {
+        const user = auth.currentUser
+
+        if (!user || !user.email) {
+          throw new Error("User not found or email not available")
+        }
+
+        // Re-authenticate user before changing password
+        const credential = EmailAuthProvider.credential(user.email, currentPassword)
+        await reauthenticateWithCredential(user, credential)
+
+        // Update password
+        await updatePassword(user, newPassword)
+
+        // Show success message
+        Alert.alert("Success", "Your password has been updated successfully.", [
+          { text: "OK", onPress: () => navigation.goBack() },
+        ])
+      } catch (error: any) {
+        let errorMessage = "Failed to change password. Please try again."
+
+        // Handle specific error cases
+        if (error.code === "auth/wrong-password") {
+          errorMessage = "Current password is incorrect."
+          setErrors((prev) => ({ ...prev, currentPassword: errorMessage }))
+        } else if (error.code === "auth/weak-password") {
+          errorMessage = "New password is too weak. Please use a stronger password."
+          setErrors((prev) => ({ ...prev, newPassword: errorMessage }))
+        } else if (error.code === "auth/requires-recent-login") {
+          errorMessage = "For security reasons, please log in again before changing your password."
+          Alert.alert("Session Expired", errorMessage, [
+            {
+              text: "OK",
+              onPress: () => {
+                // Sign out user and redirect to login
+                auth.signOut().then(() => {
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Login" as never }],
+                  })
+                })
+              },
+            },
+          ])
+        } else {
+          // Generic error handling
+          Alert.alert("Error", errorMessage)
+          console.error("Password change error:", error)
+        }
+      } finally {
         setLoading(false)
-        navigation.goBack()
-      }, 1000)
+      }
     }
   }
 
-  const navigateToResetPasswordEmail = () => {
+  const handleResetViaEmail = () => {
     navigation.navigate("ResetPasswordEmail" as any)
   }
 
@@ -146,7 +196,7 @@ const ChangePasswordScreen = () => {
           />
 
           <View style={styles.alternativeMethodContainer}>
-            <TouchableOpacity onPress={navigateToResetPasswordEmail}>
+            <TouchableOpacity onPress={handleResetViaEmail}>
               <Text style={[styles.alternativeMethod, { color: theme.colors.primary }]}>Try another method</Text>
             </TouchableOpacity>
           </View>
@@ -197,4 +247,3 @@ const styles = StyleSheet.create({
 })
 
 export default ChangePasswordScreen
-
