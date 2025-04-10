@@ -33,7 +33,8 @@
         "image": "./assets/img/4.gif",
         "resizeMode": "cover",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.anonymous.ProjectAmoro"
     },
     "web": {
       "favicon": "./assets/img/favicon.png"

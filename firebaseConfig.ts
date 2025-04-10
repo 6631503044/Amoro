@@ -11,7 +11,8 @@ import { Platform } from 'react-native';
 
 
 // Your web app's Firebase configuration
-const firebaseConfig = {
+export const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyCy6_N9bBemWAiT3774jE-YprlCwldDlrk",
   authDomain: "madproject-amoro.firebaseapp.com",
   projectId: "madproject-amoro",
@@ -21,6 +22,8 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
+            
+            
 const app = initializeApp(firebaseConfig);
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage)

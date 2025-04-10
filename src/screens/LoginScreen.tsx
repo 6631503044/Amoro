@@ -81,8 +81,6 @@ const LoginScreen = () => {
 
         // Use Firebase Authentication to sign in
         const { signInWithEmailAndPassword } = require("firebase/auth")
-        const { auth } = require("../../firebaseConfig")
-
         const userCredential = await signInWithEmailAndPassword(auth, email, password)
         const user = userCredential.user
 
@@ -123,13 +121,38 @@ const LoginScreen = () => {
         // Store the user in AsyncStorage to trigger auth state change
         await AsyncStorage.setItem("user", JSON.stringify(userObject))
 
-        // The RootNavigator will automatically redirect to Main screen
-        // because the user is now stored in AsyncStorage
+        // After successful login, get the FCM token
+        console.log('Trying to get Token')
+        const fcmToken = (await firebase.initializeApp(firebaseConfig)).messaging().getToken()   
+        console.log('FCM Token:', fcmToken)
+
+        // Save to backend
+        if (user?.uid && fcmToken) {
+          await fetch(`https://amoro-backend-3gsl.onrender.com/users/${user.uid}/fcmtoken`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ fcmToken }),
+          })
+        }
+        // After successful login, get the FCM token
+        console.log('Trying to get Token')
+        const fcmToken = (await firebase.initializeApp(firebaseConfig)).messaging().getToken()   
+        console.log('FCM Token:', fcmToken)
+
+        // Save to backend
+        if (user?.uid && fcmToken) {
+          await fetch(`https://amoro-backend-3gsl.onrender.com/users/${user.uid}/fcmtoken`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ fcmToken }),
+          })
+        }
       } catch (error) {
         console.error("Login error:", error)
-
-        // Clear password field
-        setPassword("")
 
         // Handle specific Firebase error codes
         if (error.code === "auth/invalid-credential" || error.code === "auth/user-not-found") {
@@ -139,6 +162,10 @@ const LoginScreen = () => {
         } else {
           Alert.alert("Login Error", "An error occurred during login. Please try again.")
         }
+        // Clear password field
+        setPassword("")
+        // Clear password field
+        setPassword("")
       } finally {
         setLoading(false)
       }
