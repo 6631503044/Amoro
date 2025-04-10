@@ -105,6 +105,7 @@ const ToDoListScreen = () => {
                   endTime: taskData.endTime || "23:59",
                   date: taskData.date,
                   type: taskData.withPartner ? "couple" : "personal",
+                  withPartner: taskData.withPartner,
                   tag: tag,
                   emoji: emoji,
                   description: taskData.description,
@@ -246,7 +247,8 @@ const ToDoListScreen = () => {
                   startTime: taskData.startTime || "00:00",
                   endTime: taskData.endTime || "23:59",
                   date: taskData.date,
-                  type: taskData.withPartner ? "couple" : "personal",
+                  type: taskData.withPartner ? "couple" : "personal", // This checks if withPartner is not null
+                  withPartner: taskData.withPartner, // Add this field
                   tag: tag,
                   emoji: emoji,
                   description: taskData.description,
@@ -322,7 +324,8 @@ const ToDoListScreen = () => {
                       startTime: taskData.startTime || "00:00",
                       endTime: taskData.endTime || "23:59",
                       date: taskData.date,
-                      type: taskData.withPartner ? "couple" : "personal",
+                      type: taskData.withPartner ? "couple" : "personal", // This checks if withPartner is not null
+                      withPartner: taskData.withPartner, // Add this field
                       tag: tag,
                       emoji: emoji,
                       description: taskData.description,
@@ -566,4 +569,3 @@ const styles = StyleSheet.create({
 })
 
 export default ToDoListScreen
-

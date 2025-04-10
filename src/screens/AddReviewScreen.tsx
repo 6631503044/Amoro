@@ -68,7 +68,9 @@ const AddReviewScreen = () => {
         olddate: activityData.date, // Adding olddate field with the original date
         title: activityData.title,
         description: activityData.description || "",
-        withPartner: activityData.type === "couple",
+        withPartner:
+          activityData.withPartner ||
+          (activityData.type === "couple" ? user?.partnerId || "partner-placeholder-id" : null),
         startTime: activityData.startTime,
         endTime: activityData.endTime,
         location: activityData.location || "",

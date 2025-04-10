@@ -54,8 +54,14 @@ const AddTaskScreen = () => {
   const [contentWidth, setContentWidth] = useState(0)
   const fadeAnim = useRef(new Animated.Value(1)).current
 
+  // Get the current user from auth context
+  const { user } = useAuth()
+
+  // Check if user has a partner
+  const hasPartner = user?.partnerId && user.partnerId !== ""
+
   // Form state
-  const [withPartner, setWithPartner] = useState(false)
+  const [withPartner, setWithPartner] = useState<string | null>(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [location, setLocation] = useState("")
@@ -79,9 +85,6 @@ const AddTaskScreen = () => {
   // UI state
   const [isMounted, setIsMounted] = useState(true)
   const [loading, setLoading] = useState(false)
-
-  // Get the current user from auth context
-  const { user } = useAuth()
 
   // Pulse animation for scroll indicator
   useEffect(() => {
@@ -158,16 +161,14 @@ const AddTaskScreen = () => {
       const payload = {
         createdAt: new Date().toISOString().replace("Z", "+07:00"), // Bangkok timezone
         date: formattedDate,
+        olddate: formattedDate,
         title: title,
         description: description || "",
-        withPartner: withPartner,
+        withPartner: withPartner, // Now sending the partner ID or null
         startTime: formatTimeString(startTime),
         endTime: formatTimeString(endTime),
         location: location || "",
-        Mood: {
-          Score: "",
-          Description: "",
-        },
+        Mood: {},
         Tag: tagName,
         Notification: notificationText,
         Complete: false,
@@ -358,12 +359,23 @@ const AddTaskScreen = () => {
         <ScrollView style={styles.formContainer}>
           <View style={styles.switchContainer}>
             <Text style={[styles.switchLabel, { color: theme.colors.text }]}>With Partner</Text>
-            <Switch
-              value={withPartner}
-              onValueChange={setWithPartner}
-              trackColor={{ false: "#767577", true: theme.colors.coupleActivity || "#f4f3f4" }}
-              thumbColor={withPartner ? theme.colors.primary : "#f4f3f4"}
-            />
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              {!hasPartner && (
+                <Text style={[styles.noPartnerText, { color: theme.colors.secondaryText }]}>No partner</Text>
+              )}
+              <Switch
+                value={withPartner !== null}
+                onValueChange={(value) => {
+                  // Only allow toggling if user has a partner
+                  if (hasPartner) {
+                    setWithPartner(value ? user.partnerId : null)
+                  }
+                }}
+                trackColor={{ false: "#767577", true: theme.colors.coupleActivity || "#f4f3f4" }}
+                thumbColor={withPartner !== null ? theme.colors.primary : "#f4f3f4"}
+                disabled={!hasPartner}
+              />
+            </View>
           </View>
 
           <Input label="Title" value={title} onChangeText={setTitle} placeholder="Enter activity title" />
@@ -719,6 +731,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins-Medium",
   },
+  noPartnerText: {
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    marginRight: 8,
+    fontStyle: "italic",
+  },
   dateTimeSelector: {
     borderWidth: 1,
     borderRadius: 8,
@@ -814,11 +832,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   scrollProgressContainer: {
     alignItems: "center",
@@ -943,4 +956,3 @@ const styles = StyleSheet.create({
 })
 
 export default AddTaskScreen
-
