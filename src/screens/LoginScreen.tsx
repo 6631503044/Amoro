@@ -213,14 +213,6 @@ const LoginScreen = () => {
             borderColor="#DDDDDD"
           />
 
-          <SocialButton
-            title="Continue with Apple"
-            onPress={handleAppleLogin}
-            icon="logo-apple"
-            backgroundColor="#000000"
-            textColor="#FFFFFF"
-          />
-
           <View style={styles.signupContainer}>
             <Text style={[styles.signupText, { color: theme.colors.text }]}>Don't have an account?</Text>
             <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
