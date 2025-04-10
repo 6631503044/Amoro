@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { useColorScheme } from "react-native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
@@ -26,6 +26,7 @@ interface ThemeContextType {
   }
   toggleTheme: () => void
   setThemeMode: (mode: ThemeType) => void
+  isDark: boolean
 }
 
 const lightColors: ThemeColors = {
@@ -65,7 +66,12 @@ export const useTheme = () => {
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const systemColorScheme = useColorScheme()
   const [themeMode, setThemeMode] = useState<ThemeType>("system")
+  const [isInitialized, setIsInitialized] = useState(false)
 
+  // Calculate isDark once and use it consistently
+  const isDark = themeMode === "dark" || (themeMode === "system" && systemColorScheme === "dark")
+
+  // Load theme from AsyncStorage on mount
   useEffect(() => {
     const loadTheme = async () => {
       try {
@@ -73,38 +79,59 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (savedTheme) {
           setThemeMode(savedTheme as ThemeType)
         }
+        setIsInitialized(true)
       } catch (error) {
         console.error("Failed to load theme:", error)
+        setIsInitialized(true)
       }
     }
 
     loadTheme()
   }, [])
 
-  const saveTheme = async (mode: ThemeType) => {
+  // Save theme to AsyncStorage
+  const saveTheme = useCallback(async (mode: ThemeType) => {
     try {
       await AsyncStorage.setItem("themeMode", mode)
     } catch (error) {
       console.error("Failed to save theme:", error)
     }
-  }
+  }, [])
 
-  const toggleTheme = () => {
+  // Toggle between light and dark mode
+  const toggleTheme = useCallback(() => {
+    // If currently in system mode, switch to explicit light/dark based on current appearance
+    if (themeMode === "system") {
+      const newMode = isDark ? "light" : "dark"
+      setThemeMode(newMode)
+      saveTheme(newMode)
+      return
+    }
+
+    // Otherwise toggle between light and dark
     const newMode = themeMode === "light" ? "dark" : "light"
     setThemeMode(newMode)
     saveTheme(newMode)
-  }
+  }, [themeMode, isDark, saveTheme])
 
-  const setThemeModeAndSave = (mode: ThemeType) => {
-    setThemeMode(mode)
-    saveTheme(mode)
-  }
+  // Set theme mode and save to AsyncStorage
+  const setThemeModeAndSave = useCallback(
+    (mode: ThemeType) => {
+      setThemeMode(mode)
+      saveTheme(mode)
+    },
+    [saveTheme],
+  )
 
-  const isDark = themeMode === "dark" || (themeMode === "system" && systemColorScheme === "dark")
-
+  // Create theme object with colors based on isDark
   const theme = {
     mode: themeMode,
     colors: isDark ? darkColors : lightColors,
+  }
+
+  // Don't render until we've loaded the saved theme
+  if (!isInitialized) {
+    return null
   }
 
   return (
@@ -113,10 +140,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         theme,
         toggleTheme,
         setThemeMode: setThemeModeAndSave,
+        isDark,
       }}
     >
       {children}
     </ThemeContext.Provider>
   )
 }
-

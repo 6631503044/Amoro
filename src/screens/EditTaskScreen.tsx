@@ -52,7 +52,16 @@ const EditTaskScreen = () => {
   // Get the activity data from the route params
   const { activityId, activityData } = route.params || {}
 
-  const [withPartner, setWithPartner] = useState(activityData?.type === "couple")
+  // Check if user has a partner
+  const hasPartner = user?.partnerId && user.partnerId !== ""
+
+  const [withPartner, setWithPartner] = useState<string | null>(
+    typeof activityData?.withPartner === "string"
+      ? activityData.withPartner
+      : activityData?.type === "couple"
+        ? user?.partnerId || "partner-placeholder-id"
+        : null,
+  )
   const [title, setTitle] = useState(activityData?.title || "")
   const [description, setDescription] = useState(activityData?.description || "")
   const [location, setLocation] = useState(activityData?.location || "")
@@ -124,18 +133,15 @@ const EditTaskScreen = () => {
 
       // Create payload
       const payload = {
-        date: formattedDate,
-        olddate: activityData.date, // Adding olddate field with the original date
+        date: formattedDate, // This is the potentially new date if user changed it
+        olddate: activityData.date, // This is the original date that should not change
         title: title,
         description: description || "",
-        withPartner: withPartner,
+        withPartner: withPartner, // Now sending the partner ID or null
         startTime: formatTimeString(startTime),
         endTime: formatTimeString(endTime),
         location: location || "",
-        Mood: {
-          Description: "",
-          Score: "",
-        },
+        Mood: activityData.mood || {},
         Tag: {
           name: tagName || "",
         },
@@ -143,8 +149,8 @@ const EditTaskScreen = () => {
         Complete: activityData.complete || false,
       }
 
-      console.log("Sending task update:", payload)
-
+      console.log("Sending task update - date:", payload.date, "olddate:", payload.olddate)
+      console.log(payload)
       // Send PUT request to update the task
       const API_URL = "https://amoro-backend-3gsl.onrender.com"
       const response = await fetch(`${API_URL}/tasks/${user.id}/${activityId}`, {
@@ -186,12 +192,23 @@ const EditTaskScreen = () => {
         <ScrollView style={styles.formContainer}>
           <View style={styles.switchContainer}>
             <Text style={[styles.switchLabel, { color: theme.colors.text }]}>With Partner</Text>
-            <Switch
-              value={withPartner}
-              onValueChange={setWithPartner}
-              trackColor={{ false: "#767577", true: theme.colors.coupleActivity || "#f4f3f4" }}
-              thumbColor={withPartner ? theme.colors.primary : "#f4f3f4"}
-            />
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              {!hasPartner && (
+                <Text style={[styles.noPartnerText, { color: theme.colors.secondaryText }]}>No partner</Text>
+              )}
+              <Switch
+                value={withPartner !== null}
+                onValueChange={(value) => {
+                  // Only allow toggling if user has a partner
+                  if (hasPartner) {
+                    setWithPartner(value ? user.partnerId : null)
+                  }
+                }}
+                trackColor={{ false: "#767577", true: theme.colors.coupleActivity || "#f4f3f4" }}
+                thumbColor={withPartner !== null ? theme.colors.primary : "#f4f3f4"}
+                disabled={!hasPartner}
+              />
+            </View>
           </View>
 
           <Input label="Title" value={title} onChangeText={setTitle} placeholder="Enter activity title" />
@@ -342,6 +359,12 @@ const styles = StyleSheet.create({
   switchLabel: {
     fontSize: 16,
     fontFamily: "Poppins-Medium",
+  },
+  noPartnerText: {
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    marginRight: 8,
+    fontStyle: "italic",
   },
   dateTimeSelector: {
     borderWidth: 1,

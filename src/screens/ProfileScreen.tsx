@@ -1,12 +1,13 @@
 "use client"
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Switch, Modal } from "react-native"
-import { useState, useEffect, useRef } from "react"
-
-import { useNavigation } from "@react-navigation/native"
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Modal } from "react-native"
+import { useState, useEffect, useCallback } from "react"
+import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import { useAuth } from "../context/AuthContext"
 import { useLanguage, LANGUAGES } from "../context/LanguageContext"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import { Switch } from "react-native-gesture-handler"
 
 // Mock invitation data
 const MOCK_INVITATION = {
@@ -24,13 +25,18 @@ type Invitation = typeof MOCK_INVITATION
 
 const ProfileScreen = () => {
   const navigation = useNavigation()
-  const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme, isDark } = useTheme()
   const { user, signOut } = useAuth()
   const { locale, setLocale, t } = useLanguage()
   const [showLanguages, setShowLanguages] = useState(false)
   const [showInvitations, setShowInvitations] = useState(false)
   const [selectedLocale, setSelectedLocale] = useState(locale)
-  const isInitialRender = useRef(true)
+  const [switchValue, setSwitchValue] = useState(isDark)
+
+  // Update switch value when theme changes
+  useEffect(() => {
+    setSwitchValue(isDark)
+  }, [isDark])
 
   // For demo purposes, let's assume we have an invitation
   const [hasInvitation, setHasInvitation] = useState(true)
@@ -40,6 +46,24 @@ const ProfileScreen = () => {
   useEffect(() => {
     setSelectedLocale(locale)
   }, [locale])
+
+  // Add a useEffect to refresh user data when the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const refreshUserData = async () => {
+        try {
+          const storedUser = await AsyncStorage.getItem("user")
+          if (storedUser) {
+            // This will trigger the AuthContext to update the user state
+          }
+        } catch (error) {
+          console.error("Failed to refresh user data:", error)
+        }
+      }
+
+      refreshUserData()
+    }, []),
+  )
 
   const handleSignOut = async () => {
     try {
@@ -70,36 +94,32 @@ const ProfileScreen = () => {
   }
 
   const handleAcceptInvitation = () => {
-    // In a real app, you would make an API call to accept the invitation
-    // For demo purposes, we'll just update the local state
     setHasInvitation(false)
     setShowInvitations(false)
 
-    // Update the user object to include the partner
     if (invitation) {
-      // This would be handled by your backend in a real app
       console.log(`Accepted invitation from ${invitation.sender.name}`)
     }
   }
 
   const handleRejectInvitation = () => {
-    // In a real app, you would make an API call to reject the invitation
-    // For demo purposes, we'll just update the local state
     setHasInvitation(false)
     setInvitation(undefined)
     setShowInvitations(false)
   }
 
-  // Direct language change handler - no alert, immediate effect
   const handleLanguageChange = (langId: string) => {
-    // Update local state first for immediate UI feedback
     setSelectedLocale(langId)
-    
-    // Close the dropdown immediately
     setShowLanguages(false)
-    
-    // Update the context after UI update
     setLocale(langId)
+  }
+
+  // Handle theme toggle with local state management
+  const handleThemeToggle = () => {
+    // Update local state immediately for responsive UI
+    setSwitchValue(!switchValue)
+    // Then toggle the actual theme
+    toggleTheme()
   }
 
   return (
@@ -178,18 +198,14 @@ const ProfileScreen = () => {
 
           <View style={[styles.settingsItem, { backgroundColor: theme.colors.card }]}>
             <View style={styles.settingsItemLeft}>
-              <Ionicons
-                name={theme.mode === "dark" ? "sunny-outline" : "moon-outline"}
-                size={24}
-                color={theme.colors.primary}
-              />
+              <Ionicons name={switchValue ? "sunny-outline" : "moon-outline"} size={24} color={theme.colors.primary} />
               <Text style={[styles.settingsItemText, { color: theme.colors.text }]}>{t("darkMode")}</Text>
             </View>
             <Switch
-              value={theme.mode === "dark"}
-              onValueChange={toggleTheme}
+              value={switchValue}
+              onValueChange={handleThemeToggle}
               trackColor={{ false: "#767577", true: `${theme.colors.primary}80` }}
-              thumbColor={theme.mode === "dark" ? theme.colors.primary : "#f4f3f4"}
+              thumbColor={switchValue ? theme.colors.primary : "#f4f3f4"}
             />
           </View>
 

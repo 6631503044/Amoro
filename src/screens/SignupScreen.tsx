@@ -149,7 +149,7 @@ const SignupScreen = () => {
     if (!dateString) return ""
     const date = new Date(dateString)
     // Adjust for Bangkok timezone
-    const bangkokDate = new Date(date.getTime() + (7 * 60 * 60 * 1000))
+    const bangkokDate = new Date(date.getTime() + 7 * 60 * 60 * 1000)
     return `${MONTHS[bangkokDate.getMonth()]} ${bangkokDate.getDate()}, ${bangkokDate.getFullYear()}`
   }
 
@@ -158,7 +158,7 @@ const SignupScreen = () => {
     if (!dateString) return ""
     const date = new Date(dateString)
     // Adjust for Bangkok timezone
-    const bangkokDate = new Date(date.getTime() + (7 * 60 * 60 * 1000))
+    const bangkokDate = new Date(date.getTime() + 7 * 60 * 60 * 1000)
     const day = bangkokDate.getDate().toString().padStart(2, "0")
     const month = (bangkokDate.getMonth() + 1).toString().padStart(2, "0")
     const year = bangkokDate.getFullYear()
@@ -251,16 +251,17 @@ const SignupScreen = () => {
       const uid = user.uid
 
       // 2. Prepare user data for backend
-      const hobbiesObject = parseHobbies(hobbies)
+      const hobbiesArray = hobbies ? hobbies.split(",").map((hobby) => hobby.trim()) : []
       const userData = {
         uid: uid,
         data: {
           email: email,
           username: username,
           Name: name,
-          Hobbies: hobbiesObject,
+          Hobbies: hobbiesArray,
           Birthdate: formatDateForBackend(birthday),
           Phone: phone,
+          photoURL: "https://via.placeholder.com/150",
         },
       }
       console.log(userData)
@@ -477,14 +478,6 @@ const SignupScreen = () => {
             backgroundColor="#FFFFFF"
             textColor="#757575"
             borderColor="#DDDDDD"
-          />
-
-          <SocialButton
-            title="Continue with Apple"
-            onPress={handleAppleSignUp}
-            icon="logo-apple"
-            backgroundColor="#000000"
-            textColor="#FFFFFF"
           />
 
           <View style={styles.loginContainer}>
@@ -883,4 +876,3 @@ const styles = StyleSheet.create({
 })
 
 export default SignupScreen
-

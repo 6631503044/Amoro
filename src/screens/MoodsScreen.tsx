@@ -127,7 +127,8 @@ const MoodsScreen = () => {
                 startTime: taskData.startTime || "00:00",
                 endTime: taskData.endTime || "23:59",
                 date: taskData.date,
-                type: taskData.withPartner ? "couple" : "personal",
+                type: taskData.withPartner ? "couple" : "personal", // This checks if withPartner is not null
+                withPartner: taskData.withPartner, // Add this field
                 tag: tagName,
                 emoji: emoji,
                 reviewed: taskData.Mood && (taskData.Mood.Score || taskData.Mood.Description),

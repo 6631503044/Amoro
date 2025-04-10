@@ -89,12 +89,35 @@ const LoginScreen = () => {
         // Get the UID from Firebase
         const uid = user.uid
         console.log("Login successful, UID:", uid)
-        // Create a simple user object with just the essential information
-        const userObject = {
-          id: uid,
-          email: email,
-          displayName: "User", // You might want to fetch the actual user data from your backend
-          photoURL: "https://via.placeholder.com/150",
+
+        // Fetch the latest user data from the backend
+        const API_URL = "https://amoro-backend-3gsl.onrender.com"
+        const response = await fetch(`${API_URL}/users/${uid}`)
+
+        let userObject
+
+        if (response.ok) {
+          // If user data exists in backend, use it
+          const userData = await response.json()
+
+          userObject = {
+            id: uid,
+            email: email,
+            displayName: userData.data?.Name || "User",
+            username: userData.data?.username,
+            birthday: userData.data?.Birthdate,
+            hobbies: Array.isArray(userData.data?.Hobbies) ? userData.data?.Hobbies.join(", ") : "",
+            phone: userData.data?.Phone,
+            photoURL: userData.data?.photoURL || "https://via.placeholder.com/150",
+          }
+        } else {
+          // If user data doesn't exist in backend, create a basic user object
+          userObject = {
+            id: uid,
+            email: email,
+            displayName: "User",
+            photoURL: "https://via.placeholder.com/150",
+          }
         }
 
         // Store the user in AsyncStorage to trigger auth state change
@@ -204,14 +227,6 @@ const LoginScreen = () => {
             borderColor="#DDDDDD"
           />
 
-          <SocialButton
-            title="Continue with Apple"
-            onPress={handleAppleLogin}
-            icon="logo-apple"
-            backgroundColor="#000000"
-            textColor="#FFFFFF"
-          />
-
           <View style={styles.signupContainer}>
             <Text style={[styles.signupText, { color: theme.colors.text }]}>Don't have an account?</Text>
             <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
@@ -290,4 +305,3 @@ const styles = StyleSheet.create({
 })
 
 export default LoginScreen
-

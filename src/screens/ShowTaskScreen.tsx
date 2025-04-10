@@ -69,7 +69,9 @@ const ShowTaskScreen = () => {
         olddate: activityData.date, // Adding olddate field with the same value as date
         title: activityData.title,
         description: activityData.description || "",
-        withPartner: activityData.type === "couple",
+        withPartner:
+          activityData.withPartner ||
+          (activityData.type === "couple" ? user?.partnerId || "partner-placeholder-id" : null),
         startTime: activityData.startTime,
         endTime: activityData.endTime,
         location: activityData.location || "",
@@ -83,6 +85,8 @@ const ShowTaskScreen = () => {
         Notification: activityData.notification || "",
         Complete: true,
       }
+
+      console.log("Sending task update with olddate:", updatedTaskData.olddate)
 
       console.log("Sending task update:", updatedTaskData)
 
@@ -183,7 +187,7 @@ const ShowTaskScreen = () => {
             <Ionicons name="people-outline" size={20} color={theme.colors.primary} />
             <Text style={[styles.sectionLabel, { color: theme.colors.secondaryText }]}>{t("withPartner")}</Text>
             <Text style={[styles.sectionContent, { color: theme.colors.text }]}>
-              {activityData.type === "couple" ? t("yes") : t("no")}
+              {activityData.withPartner || activityData.type === "couple" ? t("yes") : t("no")}
             </Text>
           </View>
         </View>
