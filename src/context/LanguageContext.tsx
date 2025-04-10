@@ -255,7 +255,7 @@ const translations = {
     dinnerDate: "นัดทานอาหารเย็น",
     dinnerDateReminder: "เตือนความจำ: คุณมีนัดทานอาหารเย็นในอีก 30 นาที",
     partnerRequest: "คำขอเป็นคู่",
-    partnerRequestMessage: "Jane Doe ได้ส่งคำขอเป็นคู่ให้คุณ",
+    partnerRequestMessage: "Jane Doe ได้ส่งคำขอเป��นคู่ให้คุณ",
     movieNight: "คืนดูหนัง",
     movieNightReminder: "เตือนความจำ: คืนดูหนังจะเริ่มในอีก 1 ชั่วโมง",
     activityAdded: "เพิ่มกิจกรรมแล้ว",
