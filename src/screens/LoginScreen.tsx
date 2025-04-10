@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   View,
   Text,
@@ -24,6 +24,10 @@ import SocialButton from "../components/SocialButton"
 import type { RootStackParamList } from "../navigation/RootNavigator"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { handleGoogleSignIn } from "../context/googleAuth"
+import * as Google from "expo-auth-session/providers/google"
+
+const API_URL = "https://amoro-backend-3gsl.onrender.com"
 
 const LoginScreen = () => {
   // Then use this type for navigation
@@ -36,6 +40,15 @@ const LoginScreen = () => {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({ email: "", password: "" })
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: '378572137696-oe8vginkilm2tt7050ao3lh7dvfa5fnt.apps.googleusercontent.com',
+    redirectUri: 'https://auth.expo.io/@ProjectAmoro/ProjectAmoro',
+  })
+
+  useEffect(() => {
+    handleGoogleSignIn(API_URL, promptAsync, response)
+  }, [response])
 
   const validateForm = () => {
     let valid = true
@@ -111,9 +124,10 @@ const LoginScreen = () => {
 
   const handleGoogleLogin = async () => {
     try {
-      await signInWithGoogle()
+      await promptAsync()
     } catch (error) {
       console.error("Google login error:", error)
+      Alert.alert("Error", "Failed to log in with Google. Please try again.")
     }
   }
 

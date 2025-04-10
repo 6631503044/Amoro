@@ -1,10 +1,12 @@
 {
   "expo": {
+    "sdkVersion": "52.0.0", 
     "name": "ProjectAmoro",
     "slug": "ProjectAmoro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/img/4.gif",
+    "scheme": "ProjectAmoro",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -35,7 +37,12 @@
     },
     "web": {
       "favicon": "./assets/img/favicon.png"
+    },
+    "extra": {
+      "google": {
+        "clientId": "378572137696-oe8vginkilm2tt7050ao3lh7dvfa5fnt.apps.googleusercontent.com"
+      },
+      "authRedirectUri": "https://auth.expo.io/@ProjectAmoro/ProjectAmoro"  
     }
   }
 }
-

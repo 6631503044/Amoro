@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   View,
   Text,
@@ -23,6 +23,8 @@ import SocialButton from "../components/SocialButton"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { auth } from "../../firebaseConfig"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { handleGoogleSignIn } from "../context/googleAuth"
+import * as Google from "expo-auth-session/providers/google"
 
 // Add calendar constants
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -76,6 +78,15 @@ const SignupScreen = () => {
     birthday: "",
     phone: "",
   })
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: '378572137696-oe8vginkilm2tt7050ao3lh7dvfa5fnt.apps.googleusercontent.com',
+    redirectUri: 'https://auth.expo.io/@ProjectAmoro/ProjectAmoro',
+  })
+
+  useEffect(() => {
+    handleGoogleSignIn(API_URL, promptAsync, response)
+  }, [response])
 
   // Add calendar helper functions
   const getDaysInMonth = (month: number, year: number) => {
@@ -308,7 +319,7 @@ const SignupScreen = () => {
 
   const handleGoogleSignUp = async () => {
     try {
-      await signInWithGoogle()
+      await promptAsync()
     } catch (error) {
       console.error("Google sign up error:", error)
       Alert.alert("Error", "Failed to sign up with Google. Please try again.")

@@ -4,6 +4,8 @@ import 'firebase/compat/firestore';
 import { initializeApp } from 'firebase/app';
 import { getAuth, initializeAuth , getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from "firebase/firestore";
+import * as Google from 'expo-auth-session/providers/google';
+import { Platform } from 'react-native';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -24,3 +26,18 @@ export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage)
 });
 export const db = getFirestore(app);
+
+// Google Sign-In configuration
+// const useGoogleSignIn = () => {
+//   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+//     clientId: '434400818906-70p9t0e397gsfd8hrhb7jl5g3jbhvssp.apps.googleusercontent.com', // Replace with your Google client ID
+//     redirectUri: Platform.select({
+//       ios: 'yourapp://',  // For iOS
+//       android: 'yourapp://', // For Android
+//       default: 'https://auth.expo.io/@ProjectAmoro/ProjectAmoro', // For Expo
+//     }),
+//   });
+// }
+
+// export { useGoogleSignIn };
+
