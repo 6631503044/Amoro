@@ -76,8 +76,10 @@ const AccountSettingsScreen = () => {
     setLoading(true)
     try {
       // In a real app, you would update the user profile in your backend
-      // Here we're just simulating the API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Here we're using the updateProfile function from AuthContext
+
+      // Format birthday if needed
+      const formattedBirthday = birthday
 
       // Update the user profile in the context
       if (updateProfile) {
@@ -85,7 +87,7 @@ const AccountSettingsScreen = () => {
           displayName: name,
           username,
           phone,
-          birthday,
+          birthday: formattedBirthday,
           hobbies,
           photoURL: profileImage,
         })
@@ -94,10 +96,10 @@ const AccountSettingsScreen = () => {
       // Set flag to refresh home screen data
       await AsyncStorage.setItem("refreshHomeData", "true")
 
-      Alert.alert("Success", "Profile updated successfully")
-      navigation.goBack()
+      Alert.alert("Success", "Profile updated successfully", [{ text: "OK", onPress: () => navigation.goBack() }])
     } catch (error) {
-      Alert.alert("Error", "Failed to update profile")
+      console.error("Profile update error:", error)
+      Alert.alert("Error", "Failed to update profile. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -509,4 +511,3 @@ const styles = StyleSheet.create({
 })
 
 export default AccountSettingsScreen
-

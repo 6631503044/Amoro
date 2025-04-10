@@ -1,12 +1,13 @@
 "use client"
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Switch, Modal } from "react-native"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 
-import { useNavigation } from "@react-navigation/native"
+import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import { useAuth } from "../context/AuthContext"
 import { useLanguage, LANGUAGES } from "../context/LanguageContext"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Mock invitation data
 const MOCK_INVITATION = {
@@ -40,6 +41,25 @@ const ProfileScreen = () => {
   useEffect(() => {
     setSelectedLocale(locale)
   }, [locale])
+
+  // Add a useEffect to refresh user data when the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const refreshUserData = async () => {
+        try {
+          const storedUser = await AsyncStorage.getItem("user")
+          if (storedUser) {
+            // This will trigger the AuthContext to update the user state
+            // No need to do anything else here as the AuthContext will handle it
+          }
+        } catch (error) {
+          console.error("Failed to refresh user data:", error)
+        }
+      }
+
+      refreshUserData()
+    }, []),
+  )
 
   const handleSignOut = async () => {
     try {
@@ -94,10 +114,10 @@ const ProfileScreen = () => {
   const handleLanguageChange = (langId: string) => {
     // Update local state first for immediate UI feedback
     setSelectedLocale(langId)
-    
+
     // Close the dropdown immediately
     setShowLanguages(false)
-    
+
     // Update the context after UI update
     setLocale(langId)
   }

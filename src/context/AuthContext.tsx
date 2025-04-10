@@ -209,6 +209,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     }
   }
 
+  // Update the updateProfile function to save changes to both AsyncStorage and the backend
   const updateProfile = async (params: UpdateProfileParams) => {
     try {
       setLoading(true)
@@ -216,6 +217,38 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
       // Update user object
       const updatedUser = { ...user, ...params }
+
+      // Save to backend API
+      const API_URL = "https://amoro-backend-3gsl.onrender.com"
+      const userData = {
+        uid: user.id,
+        data: {
+          email: user.email,
+          username: params.username || user.username,
+          Name: params.displayName || user.displayName,
+          Hobbies: params.hobbies
+            ? params.hobbies.split(",").map((hobby) => hobby.trim())
+            : user.hobbies
+              ? user.hobbies.split(",").map((hobby) => hobby.trim())
+              : [],
+          Birthdate: params.birthday || user.birthday,
+          Phone: params.phone || user.phone,
+          photoURL: params.photoURL || user.photoURL,
+        },
+      }
+
+      // Send PUT request to update user data
+      const response = await fetch(`${API_URL}/users/${user.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`)
+      }
 
       // Save to storage
       await AsyncStorage.setItem("user", JSON.stringify(updatedUser))
@@ -245,4 +278,3 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 }
 
 export default AuthProvider
-
