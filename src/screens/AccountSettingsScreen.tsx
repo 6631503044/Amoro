@@ -96,7 +96,7 @@ const AccountSettingsScreen = () => {
       // Set flag to refresh home screen data
       await AsyncStorage.setItem("refreshHomeData", "true")
 
-      Alert.alert("Success", "Profile updated successfully", [{ text: "OK", onPress: () => navigation.goBack() }])
+      Alert.alert("Success", "Profile updated successfully")
     } catch (error) {
       console.error("Profile update error:", error)
       Alert.alert("Error", "Failed to update profile. Please try again.")

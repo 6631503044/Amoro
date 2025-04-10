@@ -138,6 +138,7 @@ const HomeScreen = () => {
             endTime: taskData.endTime || "23:59",
             date: taskData.date,
             type: taskData.withPartner ? "couple" : "personal",
+            withPartner: taskData.withPartner,
             tag: tag,
             emoji: emoji,
             description: taskData.description,
@@ -252,7 +253,7 @@ const HomeScreen = () => {
     setSelectedDate(newDate.toISOString().split("T")[0])
   }
 
-  // Fix the calendar dots issue by making the keys unique
+  // Refactored getMarkedDates function to consolidate dots by type
   const getMarkedDates = () => {
     const markedDates = {}
 
@@ -265,19 +266,51 @@ const HomeScreen = () => {
 
     // If we have activities data, add dots for each activity date
     if (Array.isArray(activities)) {
+      // Create a map to track which dates have which types of activities
+      const dateActivityMap = {}
+
+      // First pass: organize activities by date and type
       activities.forEach((activity) => {
-        if (!markedDates[activity.date]) {
-          markedDates[activity.date] = { dots: [] }
-        } else if (!markedDates[activity.date].dots) {
-          markedDates[activity.date].dots = []
+        if (!dateActivityMap[activity.date]) {
+          dateActivityMap[activity.date] = {
+            hasPersonal: false,
+            hasCouple: false,
+          }
         }
 
-        // Add dot with a unique key for each activity
-        markedDates[activity.date].dots.push({
-          key: `${activity.type}-${activity.id}`, // Make keys unique by adding ID
-          color: activity.type === "personal" ? theme.colors.personalActivity : theme.colors.coupleActivity,
-          selectedDotColor: activity.type === "personal" ? theme.colors.personalActivity : theme.colors.coupleActivity,
-        })
+        // Mark the date as having a personal or couple activity
+        if (activity.type === "personal") {
+          dateActivityMap[activity.date].hasPersonal = true
+        } else if (activity.type === "couple") {
+          dateActivityMap[activity.date].hasCouple = true
+        }
+      })
+
+      // Second pass: create dots based on activity types
+      Object.keys(dateActivityMap).forEach((date) => {
+        if (!markedDates[date]) {
+          markedDates[date] = { dots: [] }
+        } else if (!markedDates[date].dots) {
+          markedDates[date].dots = []
+        }
+
+        // Add a single dot for personal activities if any exist
+        if (dateActivityMap[date].hasPersonal) {
+          markedDates[date].dots.push({
+            key: "personal",
+            color: theme.colors.personalActivity,
+            selectedDotColor: theme.colors.personalActivity,
+          })
+        }
+
+        // Add a single dot for couple activities if any exist
+        if (dateActivityMap[date].hasCouple) {
+          markedDates[date].dots.push({
+            key: "couple",
+            color: theme.colors.coupleActivity,
+            selectedDotColor: theme.colors.coupleActivity,
+          })
+        }
       })
     }
 
@@ -758,4 +791,3 @@ const styles = StyleSheet.create({
 })
 
 export default HomeScreen
-
