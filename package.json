@@ -23,8 +23,12 @@
     "amoro-app": "file:",
     "date-fns": "^4.1.0",
     "expo": "~52.0.41",
+    "expo-calendar": "~14.0.6",
+    "expo-contacts": "~14.0.5",
     "expo-image-picker": "^16.0.6",
     "expo-localization": "^16.0.1",
+    "expo-location": "~18.0.10",
+    "expo-notifications": "~0.29.14",
     "expo-splash-screen": "^0.29.22",
     "expo-status-bar": "~2.0.1",
     "firebase": "^11.3.0",
@@ -43,11 +47,7 @@
     "react-native-svg": "15.8.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "^0.19.13",
-    "url-parse": "^1.5.10",
-    "expo-notifications": "~0.29.14",
-    "expo-location": "~18.0.10",
-    "expo-contacts": "~14.0.5",
-    "expo-calendar": "~14.0.6"
+    "url-parse": "^1.5.10"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -103,8 +103,15 @@ const ShowTaskScreen = () => {
       // Set flag to refresh home screen data
       await AsyncStorage.setItem("refreshHomeData", "true")
 
-      // Navigate to AddReview screen after marking as complete
-      navigation.navigate("AddReview" as never, { activityId: activityId, activityData: activityData } as never)
+      // Make sure to pass both activityId and activityData to the AddReview screen
+      console.log("Navigating to AddReview with data:", { activityId, activityData })
+      navigation.navigate(
+        "AddReview" as never,
+        {
+          activityId: activityId,
+          activityData: activityData,
+        } as never,
+      )
     } catch (error) {
       console.error("Error completing task:", error)
       Alert.alert("Error", "Failed to mark task as complete. Please try again.")

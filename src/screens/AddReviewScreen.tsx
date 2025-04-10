@@ -1,25 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator } from "react-native"
 import { useNavigation, useRoute } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import { useLanguage } from "../context/LanguageContext"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-
-// Mock activity data with enhanced details
-const ACTIVITY = {
-  id: "1",
-  title: "Dinner at Italian Restaurant",
-  date: "2023-06-10T19:30:00", // ISO format with time
-  type: "couple",
-  tag: "date",
-  emoji: "🍝",
-  partnerId: "123", // Partner ID if it's a couple activity
-  partnerName: "Jane Doe", // Partner name
-  location: "Bella Italia, Downtown",
-}
+import { useAuth } from "../context/AuthContext"
 
 // Mood options
 const MOODS = [
@@ -36,28 +24,95 @@ const AddReviewScreen = () => {
   const route = useRoute()
   const { theme } = useTheme()
   const { t, formatDate } = useLanguage()
+  const { user } = useAuth()
 
-  // In a real app, you would fetch the activity based on the ID from the route
-  // const { activityId } = route.params;
-  const activity = ACTIVITY
+  // Get the activity data from the route params
+  const { activityId, activityData } = route.params || {}
+
+  // Log the received data for debugging
+  console.log("AddReview received:", { activityId, activityData })
+  console.log("Route params:", route.params)
 
   const [rating, setRating] = useState(0)
   const [review, setReview] = useState("")
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
+  // Handle saving the review
   const handleSave = async () => {
-    // Here you would save the review to your data store
-    console.log({
-      activityId: activity.id,
-      rating,
-      review,
-      mood: selectedMood,
-    })
+    if (!selectedMood) {
+      Alert.alert("Missing Information", "Please select your mood")
+      return
+    }
 
-    // Set flag to refresh home screen data
-    await AsyncStorage.setItem("refreshHomeData", "true")
+    if (rating === 0) {
+      Alert.alert("Missing Information", "Please rate your experience")
+      return
+    }
 
-    navigation.goBack()
+    if (!user || !user.id) {
+      Alert.alert("Error", "User not authenticated")
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      // Get the selected mood name
+      const selectedMoodObj = MOODS.find((mood) => mood.id === selectedMood)
+      const moodName = selectedMoodObj ? selectedMoodObj.name : ""
+
+      // Create the updated task data
+      const updatedTaskData = {
+        date: activityData.date,
+        olddate: activityData.date, // Adding olddate field with the original date
+        title: activityData.title,
+        description: activityData.description || "",
+        withPartner: activityData.type === "couple",
+        startTime: activityData.startTime,
+        endTime: activityData.endTime,
+        location: activityData.location || "",
+        Mood: {
+          Description: moodName,
+          Score: rating.toString(),
+          Review: review,
+        },
+        Tag: {
+          name: typeof activityData.tag === "string" ? activityData.tag : "",
+        },
+        Notification: activityData.notification || "",
+        Complete: true,
+      }
+
+      console.log("Sending review data:", updatedTaskData)
+
+      // Send PUT request to update the task
+      const API_URL = "https://amoro-backend-3gsl.onrender.com"
+      const response = await fetch(`${API_URL}/tasks/${user.id}/${activityId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedTaskData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`)
+      }
+
+      // Set flags to refresh data on other screens
+      await AsyncStorage.setItem("refreshHomeData", "true")
+      await AsyncStorage.setItem("refreshMoodsData", "true")
+
+      Alert.alert("Success", "Your review has been saved successfully", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ])
+    } catch (error) {
+      console.error("Error saving review:", error)
+      Alert.alert("Error", "Failed to save review. Please try again.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const renderRatingSelector = () => {
@@ -77,6 +132,30 @@ const AddReviewScreen = () => {
     )
   }
 
+  // Add error handling if activityData is missing
+  // If we don't have activity data, show an error
+  if (!activityData) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="close" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: theme.colors.text }]}>{t("addReview")}</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: theme.colors.secondaryText }]}>
+            Activity data not found. Please try again.
+          </Text>
+          <Text style={[styles.errorText, { color: theme.colors.secondaryText, marginTop: 10 }]}>
+            Debug info: ID: {JSON.stringify(activityId)}, Data received: {JSON.stringify(route.params)}
+          </Text>
+        </View>
+      </View>
+    )
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
@@ -90,30 +169,28 @@ const AddReviewScreen = () => {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.activityCard, { backgroundColor: theme.colors.card }]}>
           <View style={styles.emojiContainer}>
-            <Text style={styles.emoji}>{activity.emoji}</Text>
+            <Text style={styles.emoji}>{activityData.emoji}</Text>
           </View>
-          <Text style={[styles.activityTitle, { color: theme.colors.text }]}>{activity.title}</Text>
+          <Text style={[styles.activityTitle, { color: theme.colors.text }]}>{activityData.title}</Text>
 
           {/* Date and time information */}
           <Text style={[styles.activityDateTime, { color: theme.colors.secondaryText }]}>
-            {formatDate(activity.date, "dateTimeFormat")}
+            {formatDate(new Date(activityData.date), "dateFormat")} • {activityData.startTime}
           </Text>
 
           {/* Location information */}
-          {activity.location && (
+          {activityData.location && (
             <View style={styles.locationContainer}>
               <Ionicons name="location-outline" size={14} color={theme.colors.secondaryText} />
-              <Text style={[styles.locationText, { color: theme.colors.secondaryText }]}>{activity.location}</Text>
+              <Text style={[styles.locationText, { color: theme.colors.secondaryText }]}>{activityData.location}</Text>
             </View>
           )}
 
           {/* Partner information for couple activities */}
-          {activity.type === "couple" && activity.partnerName && (
+          {activityData.type === "couple" && (
             <View style={[styles.partnerBadge, { backgroundColor: `${theme.colors.primary}15` }]}>
               <Ionicons name="people-outline" size={14} color={theme.colors.primary} />
-              <Text style={[styles.partnerText, { color: theme.colors.primary }]}>
-                {t("with")} {activity.partnerName}
-              </Text>
+              <Text style={[styles.partnerText, { color: theme.colors.primary }]}>{t("with")} Partner</Text>
             </View>
           )}
         </View>
@@ -126,12 +203,13 @@ const AddReviewScreen = () => {
               key={mood.id}
               style={[
                 styles.moodItem,
+                { borderColor: theme.colors.border },
                 selectedMood === mood.id && {
                   backgroundColor: `${theme.colors.primary}20`,
                   borderColor: theme.colors.primary,
                 },
               ]}
-              onPress={() => setSelectedMood(mood.id)}
+              onPress={() => setSelectedMood(mood.id === selectedMood ? null : mood.id)}
             >
               <Text style={styles.moodEmoji}>{mood.emoji}</Text>
               <Text
@@ -174,8 +252,13 @@ const AddReviewScreen = () => {
         <TouchableOpacity
           style={[styles.saveButtonLarge, { backgroundColor: theme.colors.primary }]}
           onPress={handleSave}
+          disabled={loading}
         >
-          <Text style={styles.saveButtonText}>{t("saveReview")}</Text>
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.saveButtonText}>{t("saveReview")}</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -272,7 +355,6 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
     marginBottom: 10,
   },
   moodEmoji: {
@@ -310,7 +392,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins-SemiBold",
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
+  },
 })
 
 export default AddReviewScreen
-

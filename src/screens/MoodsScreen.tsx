@@ -251,26 +251,14 @@ const MoodsScreen = () => {
     return matchesSearch && matchesType
   })
 
-  const renderRatingStars = (rating: number) => {
-    return (
-      <View style={styles.ratingContainer}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Ionicons
-            key={star}
-            name={star <= rating ? "heart" : "heart-outline"}
-            size={16}
-            color={theme.colors.primary}
-          />
-        ))}
-      </View>
-    )
-  }
-
+  // Update the renderActivityItem function to pass the full activity data
   const renderActivityItem = ({ item }) => {
     return (
       <TouchableOpacity
         style={[styles.activityItem, { backgroundColor: theme.colors.card }]}
-        onPress={() => navigation.navigate("ActivityReview" as never, { activityId: item.id } as never)}
+        onPress={() =>
+          navigation.navigate("ActivityReview" as never, { activityId: item.id, activityData: item } as never)
+        }
       >
         <View style={styles.activityHeader}>
           <View style={styles.emojiContainer}>
@@ -295,13 +283,30 @@ const MoodsScreen = () => {
           ) : (
             <TouchableOpacity
               style={[styles.reviewButton, { backgroundColor: theme.colors.primary }]}
-              onPress={() => navigation.navigate("AddReview" as never, { activityId: item.id } as never)}
+              onPress={() =>
+                navigation.navigate("AddReview" as never, { activityId: item.id, activityData: item } as never)
+              }
             >
               <Text style={styles.reviewButtonText}>{t("addReview")}</Text>
             </TouchableOpacity>
           )}
         </View>
       </TouchableOpacity>
+    )
+  }
+
+  const renderRatingStars = (rating: number) => {
+    return (
+      <View style={styles.ratingContainer}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Ionicons
+            key={star}
+            name={star <= rating ? "heart" : "heart-outline"}
+            size={16}
+            color={theme.colors.primary}
+          />
+        ))}
+      </View>
     )
   }
 
