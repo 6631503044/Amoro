@@ -1,36 +1,37 @@
 {
   "expo": {
     "sdkVersion": "52.0.0",
-    "name": "ProjectAmoro",
+    "name": "projectamoro",
     "slug": "amoro",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/img/4.gif",
-    "scheme": "ProjectAmoro",
+    "icon": "./assets/img/4.png",
+    "scheme": ["projectamoro"],
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/img/4.gif",
+      "image": "./assets/img/4.png",
       "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
-      "icon": "./assets/img/4.gif",
+      "icon": "./assets/img/4.png",
       "splash": {
-        "image": "./assets/img/4.gif",
+        "image": "./assets/img/4.png",
         "resizeMode": "cover",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "bundleIdentifier": "com.anonymous.ProjectAmoro"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/img/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "icon": "./assets/img/4.gif",
+      "icon": "./assets/img/4.png",
       "splash": {
-        "image": "./assets/img/4.gif",
+        "image": "./assets/img/4.png",
         "resizeMode": "cover",
         "backgroundColor": "#ffffff"
       },

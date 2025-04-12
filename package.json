@@ -1,5 +1,5 @@
 {
-  "name": "amoro-app",
+  "name": "projectamoro",
   "license": "0BSD",
   "version": "1.0.0",
   "main": "index.tsx",
@@ -7,7 +7,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "preinstall": "node -e \"const pkg = require('./package.json'); delete pkg.dependencies['projectamoro']; require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));\""
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
@@ -25,8 +26,8 @@
     "@react-navigation/native-stack": "^7.3.10",
     "@react-navigation/stack": "^7.2.10",
     "@types/react-navigation": "^3.4.0",
-    "amoro-app": "file:",
     "date-fns": "^4.1.0",
+    "expo": "~52.0.43",
     "expo-auth-session": "~6.0.3",
     "expo-calendar": "~14.0.6",
     "expo-contacts": "~14.0.5",
