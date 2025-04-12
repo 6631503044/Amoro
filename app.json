@@ -1,8 +1,8 @@
 {
   "expo": {
-    "sdkVersion": "52.0.0", 
+    "sdkVersion": "52.0.0",
     "name": "ProjectAmoro",
-    "slug": "ProjectAmoro",
+    "slug": "amoro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/img/4.gif",
@@ -43,7 +43,11 @@
       "google": {
         "clientId": "378572137696-oe8vginkilm2tt7050ao3lh7dvfa5fnt.apps.googleusercontent.com"
       },
-      "authRedirectUri": "https://auth.expo.io/@ProjectAmoro/ProjectAmoro"  
-    }
+      "authRedirectUri": "https://auth.expo.io/@ProjectAmoro/ProjectAmoro",
+      "eas": {
+        "projectId": "4993d8a8-a35e-4652-b979-08cfaa2e3748"
+      }
+    },
+    "owner": "gritthaphat"
   }
 }

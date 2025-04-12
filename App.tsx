@@ -4,7 +4,9 @@ import { ThemeProvider } from "./src/context/ThemeContext"
 import AuthProvider from "./src/context/AuthContext"
 import { LanguageProvider } from "./src/context/LanguageContext"
 
+//registerForPushNotificationsAsync();
 export default function App() {
+
   return (
     <AuthProvider>
       <LanguageProvider>

@@ -4,8 +4,12 @@ import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import { useLanguage } from "../context/LanguageContext"
 import { useNavigation } from "@react-navigation/native"
+import { useEffect, useState } from "react"
+import * as Notifications from "expo-notifications"
+import { Alert } from "react-native"
 
 // Mock data for notifications
+
 const NOTIFICATIONS = [
   {
     id: "1",
@@ -58,6 +62,40 @@ const NotificationsScreen = () => {
   const { t, formatDate, getNotificationTitle, getNotificationMessage } = useLanguage()
   const navigation = useNavigation()
 
+  const [expoNotifications, setExpoNotifications] = useState<any[]>([])
+
+useEffect(() => {
+  const createNotification = (notification: Notifications.Notification) => {
+    const { title, body, data } = notification.request.content;
+    console.log(data.receiveremail)
+    return {
+      id: `${Date.now()}`,
+      title: title || "New Notification",
+      message: body || "",
+      time: new Date().toISOString(),
+      read: false,
+      type: data.type || null,
+      activityId: data.matchId || null,
+      sender: data.senderemail ,
+      receiverEmail: data.receiveremail
+    };
+  };
+  const receivedSub = Notifications.addNotificationReceivedListener(notification => {
+    setExpoNotifications(prev => [createNotification(notification), ...prev]);
+  });
+
+  const responseSub = Notifications.addNotificationResponseReceivedListener(response => {
+    setExpoNotifications(prev => [createNotification(response.notification), ...prev]);
+  });
+
+  return () => {
+    receivedSub.remove();
+    responseSub.remove();
+  };
+}, []);
+
+const allNotifications = [...expoNotifications, ...NOTIFICATIONS]
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "reminder":
@@ -86,9 +124,77 @@ const NotificationsScreen = () => {
       return formatDate(date, "shortDateFormat")
     }
   }
+  
+  
+
+const showMatchPopup = ( sender: string, receiverEmail: string) => {
+  Alert.alert(
+    "Matched!",
+    "You've been matched with someone. Do you accept?",
+    [
+      {
+        text: "Reject",
+        onPress: async () => {
+          try {
+            const response = await fetch(`https://amoro-backend-3gsl.onrender.com/notification/respond`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                senderemail : sender,
+                receiveremail : receiverEmail,
+                Isaccept: false
+              }),
+            });
+
+            if (!response.ok) throw new Error('Failed to send response');
+            Alert.alert("Success", "Match declined");
+          } catch (error) {
+            console.error("Rejection error:", error);
+            Alert.alert("Error", "Failed to send response");
+          }
+        },
+        style: "destructive",
+      },
+      {
+        text: "Accept",
+        onPress: async () => {
+          try {
+            const response = await fetch(`https://amoro-backend-3gsl.onrender.com/notification/respond`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                senderemail : sender,
+                receiveremail : receiverEmail,
+                Isaccept: true
+              }),
+            });
+
+            if (!response.ok) throw new Error('Failed to send response');
+            Alert.alert("Success", "Match accepted!");
+          } catch (error) {
+            console.error("Acceptance error:", error);
+            Alert.alert("Error", "Failed to send response");
+          }
+        },
+      },
+    ],
+    { cancelable: true }
+  );
+};
 
   const handleNotificationPress = (notification) => {
-    if (notification.activityId) {
+    console.log(notification.type)
+    if (notification.type === "match") {
+      showMatchPopup(
+        notification.sender,
+        notification.receiverEmail
+      )
+    }
+    else if (notification.activityId) {
       // @ts-ignore - Ignoring type error for navigation
       navigation.navigate("ShowTask", { activityId: notification.activityId })
     }
@@ -129,7 +235,7 @@ const NotificationsScreen = () => {
 
       {NOTIFICATIONS.length > 0 ? (
         <FlatList
-          data={NOTIFICATIONS}
+          data={allNotifications}
           keyExtractor={(item) => item.id}
           renderItem={renderNotificationItem}
           contentContainerStyle={styles.listContent}

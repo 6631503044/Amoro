@@ -27,6 +27,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { handleGoogleSignIn } from "../context/googleAuth"
 import * as Google from "expo-auth-session/providers/google"
 import { auth } from "../../firebaseConfig"
+import { registerForPushNotificationsAsync } from '../context/expoNotification'
 
 const API_URL = "https://amoro-backend-3gsl.onrender.com"
 
@@ -122,39 +123,20 @@ const LoginScreen = () => {
         // Store the user in AsyncStorage to trigger auth state change
         await AsyncStorage.setItem("user", JSON.stringify(userObject))
 
-        // After successful login, get the FCM token
-        console.log("Trying to get Token")
-        // For FCM token, you'll need to properly import and initialize firebase messaging
-        // This is a placeholder - you'll need to implement proper FCM token retrieval
-        let fcmToken = null
-        console.log("FCM Token functionality needs proper implementation")
-
-        // Save to backend
-        if (user?.uid && fcmToken) {
-          await fetch(`https://amoro-backend-3gsl.onrender.com/users/${user.uid}/fcmtoken`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ fcmToken }),
-          })
-        }
-        // After successful login, get the FCM token
-        console.log("Trying to get Token")
-        // For FCM token, you'll need to properly import and initialize firebase messaging
-        // This is a placeholder - you'll need to implement proper FCM token retrieval
-        fcmToken = null
-        console.log("FCM Token functionality needs proper implementation")
-
-        // Save to backend
-        if (user?.uid && fcmToken) {
-          await fetch(`https://amoro-backend-3gsl.onrender.com/users/${user.uid}/fcmtoken`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ fcmToken }),
-          })
+        // Register for push notifications
+        try {
+          const expoPushToken = await registerForPushNotificationsAsync();
+          if (expoPushToken && user?.uid) {
+            await fetch(`${API_URL}/users/${user.uid}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ PushToken: expoPushToken }),
+            });
+          }
+        } catch (error) {
+          console.error('Error registering for push notifications:', error);
         }
       } catch (error) {
         console.error("Login error:", error)
