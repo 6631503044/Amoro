@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
 } from "react-native"
 import { useNavigation, useRoute } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
@@ -75,6 +76,12 @@ const EditTaskScreen = () => {
     NOTIFICATION_OPTIONS.find((option) => option.label === activityData?.notification)?.value || 0,
   )
 
+  // Time picker state
+  const [selectedHours, setSelectedHours] = useState(startTime.getHours())
+  const [selectedMinutes, setSelectedMinutes] = useState(startTime.getMinutes())
+  const [isStartTime, setIsStartTime] = useState(true)
+  const [showNotificationOptions, setShowNotificationOptions] = useState(false)
+
   // UI state
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showStartTimePicker, setShowStartTimePicker] = useState(false)
@@ -101,6 +108,50 @@ const EditTaskScreen = () => {
     } catch (error) {
       console.error("Error formatting time:", error)
       return "Invalid time"
+    }
+  }
+
+  // Generate hours for time picker
+  const generateHours = () => {
+    const hours = []
+    for (let i = 0; i < 24; i++) {
+      const displayHour = i % 12 || 12
+      const ampm = i >= 12 ? "PM" : "AM"
+      hours.push({ value: i, display: `${displayHour} ${ampm}` })
+    }
+    return hours
+  }
+
+  // Generate minutes for time picker
+  const generateMinutes = () => {
+    const minutes = []
+    for (let i = 0; i < 60; i += 5) {
+      minutes.push({ value: i, display: i.toString().padStart(2, "0") })
+    }
+    return minutes
+  }
+
+  // Handle time selection
+  const handleTimeSelection = (hours: number, minutes: number) => {
+    const newTime = new Date(isStartTime ? startTime : endTime)
+    newTime.setHours(hours)
+    newTime.setMinutes(minutes)
+
+    if (isStartTime) {
+      setStartTime(newTime)
+
+      // Ensure end time is after start time
+      if (newTime > endTime) {
+        const newEndTime = new Date(newTime)
+        newEndTime.setHours(newTime.getHours() + 1)
+        setEndTime(newEndTime)
+      }
+    } else {
+      // Ensure end time is after start time
+      if (newTime < startTime) {
+        newTime.setDate(newTime.getDate() + 1)
+      }
+      setEndTime(newTime)
     }
   }
 
@@ -257,7 +308,12 @@ const EditTaskScreen = () => {
           <View style={styles.timeSelectionRow}>
             <TouchableOpacity
               style={[styles.timeSelector, { borderColor: theme.colors.border }]}
-              onPress={() => setShowStartTimePicker(true)}
+              onPress={() => {
+                setIsStartTime(true)
+                setSelectedHours(startTime.getHours())
+                setSelectedMinutes(startTime.getMinutes())
+                setShowStartTimePicker(true)
+              }}
             >
               <Text style={[styles.timeSelectorLabel, { color: theme.colors.text }]}>Start Time</Text>
               <View style={styles.timeValue}>
@@ -268,7 +324,12 @@ const EditTaskScreen = () => {
 
             <TouchableOpacity
               style={[styles.timeSelector, { borderColor: theme.colors.border }]}
-              onPress={() => setShowEndTimePicker(true)}
+              onPress={() => {
+                setIsStartTime(false)
+                setSelectedHours(endTime.getHours())
+                setSelectedMinutes(endTime.getMinutes())
+                setShowEndTimePicker(true)
+              }}
             >
               <Text style={[styles.timeSelectorLabel, { color: theme.colors.text }]}>End Time</Text>
               <View style={styles.timeValue}>
@@ -308,19 +369,166 @@ const EditTaskScreen = () => {
             ))}
           </View>
 
-          <TouchableOpacity style={[styles.dateTimeSelector, { borderColor: theme.colors.border }]}>
+          <TouchableOpacity
+            style={[styles.dateTimeSelector, { borderColor: theme.colors.border }]}
+            onPress={() => setShowNotificationOptions(!showNotificationOptions)}
+          >
             <Text style={[styles.dateTimeSelectorLabel, { color: theme.colors.text }]}>Notification</Text>
             <View style={styles.dateTimeValue}>
-              <Text style={[styles.dateTimeValueText, { color: theme.colors.text }]}>At time of event</Text>
-              <Ionicons name="chevron-down" size={20} color={theme.colors.secondaryText} />
+              <Text style={[styles.dateTimeValueText, { color: theme.colors.text }]}>
+                {NOTIFICATION_OPTIONS.find((option) => option.value === notificationTime)?.label || "At time of event"}
+              </Text>
+              <Ionicons
+                name={showNotificationOptions ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={theme.colors.secondaryText}
+              />
             </View>
           </TouchableOpacity>
+
+          {showNotificationOptions && (
+            <View style={[styles.notificationOptions, { backgroundColor: theme.colors.card }]}>
+              {NOTIFICATION_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={[
+                    styles.notificationOption,
+                    notificationTime === option.value && {
+                      backgroundColor: `${theme.colors.primary}20`,
+                    },
+                  ]}
+                  onPress={() => {
+                    setNotificationTime(option.value)
+                    setShowNotificationOptions(false)
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.notificationOptionText,
+                      { color: theme.colors.text },
+                      notificationTime === option.value && {
+                        color: theme.colors.primary,
+                        fontFamily: "Poppins-SemiBold",
+                      },
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  {notificationTime === option.value && (
+                    <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           <View style={styles.buttonContainer}>
             <Button title={loading ? "Saving..." : "Save Activity"} onPress={handleSave} disabled={loading} />
           </View>
         </ScrollView>
       </View>
+
+      <Modal
+        visible={showStartTimePicker || showEndTimePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowStartTimePicker(false)
+          setShowEndTimePicker(false)
+        }}
+      >
+        <View style={styles.datePickerContainer}>
+          <TouchableOpacity
+            style={styles.datePickerBackdrop}
+            onPress={() => {
+              setShowStartTimePicker(false)
+              setShowEndTimePicker(false)
+            }}
+          />
+          <View style={[styles.datePickerContent, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.datePickerTitle, { color: theme.colors.text }]}>
+              {isStartTime ? "Select Start Time" : "Select End Time"}
+            </Text>
+
+            <View style={styles.timePickerContainer}>
+              {/* Hours */}
+              <View style={styles.timePickerColumn}>
+                <Text style={[styles.timePickerLabel, { color: theme.colors.secondaryText }]}>Hour</Text>
+                <ScrollView style={styles.timePickerScroll}>
+                  {generateHours().map((hour, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.timePickerItem,
+                        selectedHours === hour.value && {
+                          backgroundColor: `${theme.colors.primary}20`,
+                        },
+                      ]}
+                      onPress={() => setSelectedHours(hour.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.timePickerItemText,
+                          { color: theme.colors.text },
+                          selectedHours === hour.value && {
+                            color: theme.colors.primary,
+                            fontFamily: "Poppins-SemiBold",
+                          },
+                        ]}
+                      >
+                        {hour.display}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Minutes */}
+              <View style={styles.timePickerColumn}>
+                <Text style={[styles.timePickerLabel, { color: theme.colors.secondaryText }]}>Minute</Text>
+                <ScrollView style={styles.timePickerScroll}>
+                  {generateMinutes().map((minute, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.timePickerItem,
+                        selectedMinutes === minute.value && {
+                          backgroundColor: `${theme.colors.primary}20`,
+                        },
+                      ]}
+                      onPress={() => setSelectedMinutes(minute.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.timePickerItemText,
+                          { color: theme.colors.text },
+                          selectedMinutes === minute.value && {
+                            color: theme.colors.primary,
+                            fontFamily: "Poppins-SemiBold",
+                          },
+                        ]}
+                      >
+                        {minute.display}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.datePickerButton, { backgroundColor: theme.colors.primary }]}
+              onPress={() => {
+                handleTimeSelection(selectedHours, selectedMinutes)
+                setShowStartTimePicker(false)
+                setShowEndTimePicker(false)
+              }}
+            >
+              <Text style={styles.datePickerButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   )
 }
@@ -450,6 +658,97 @@ const styles = StyleSheet.create({
     lineHeight: 20, // Line height for better readability
     paddingLeft: 15, // Match the title input's left padding
     paddingBottom: 0, // Reduced padding to move text lower
+  },
+  datePickerContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  datePickerBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  datePickerContent: {
+    width: "80%",
+    padding: 20,
+    borderRadius: 12,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontFamily: "Poppins-SemiBold",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  datePickerButton: {
+    paddingVertical: 10,
+    borderRadius: 25,
+    alignItems: "center",
+  },
+  datePickerButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+  },
+  timePickerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  timePickerColumn: {
+    width: "48%",
+  },
+  timePickerLabel: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  timePickerScroll: {
+    height: 200,
+  },
+  timePickerItem: {
+    padding: 10,
+    borderRadius: 8,
+  },
+  timePickerItemText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    textAlign: "center",
+  },
+  notificationOptions: {
+    borderRadius: 8,
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+  },
+  notificationOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
+  },
+  notificationOptionText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
   },
 })
 
