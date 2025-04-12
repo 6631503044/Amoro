@@ -1,14 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import Input from "../components/Input"
 import Button from "../components/Button"
 import { auth } from "../../firebaseConfig"
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth"
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, sendPasswordResetEmail } from "firebase/auth"
 
 const ChangePasswordScreen = () => {
   const navigation = useNavigation()
@@ -22,6 +22,39 @@ const ChangePasswordScreen = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errors, setErrors] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" })
   const [loading, setLoading] = useState(false)
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, message: "" })
+
+  // Password strength checker
+  const checkPasswordStrength = (password) => {
+    if (!password) {
+      setPasswordStrength({ score: 0, message: "" })
+      return
+    }
+
+    let score = 0
+    let message = ""
+
+    // Length check
+    if (password.length >= 8) score += 1
+
+    // Complexity checks
+    if (/[A-Z]/.test(password)) score += 1
+    if (/[0-9]/.test(password)) score += 1
+    if (/[^A-Za-z0-9]/.test(password)) score += 1
+
+    // Set message based on score
+    if (score === 0 || score === 1) {
+      message = "Weak password"
+    } else if (score === 2) {
+      message = "Moderate password"
+    } else if (score === 3) {
+      message = "Strong password"
+    } else {
+      message = "Very strong password"
+    }
+
+    setPasswordStrength({ score, message })
+  }
 
   const validateForm = () => {
     let valid = true
@@ -37,6 +70,9 @@ const ChangePasswordScreen = () => {
       valid = false
     } else if (newPassword.length < 6) {
       newErrors.newPassword = "Password must be at least 6 characters"
+      valid = false
+    } else if (passwordStrength.score < 2) {
+      newErrors.newPassword = "Please use a stronger password"
       valid = false
     }
 
@@ -63,18 +99,29 @@ const ChangePasswordScreen = () => {
           throw new Error("User not found or email not available")
         }
 
+        console.log("Attempting to re-authenticate user...")
         // Re-authenticate user before changing password
         const credential = EmailAuthProvider.credential(user.email, currentPassword)
         await reauthenticateWithCredential(user, credential)
+        console.log("Re-authentication successful")
 
         // Update password
+        console.log("Updating password...")
         await updatePassword(user, newPassword)
+        console.log("Password updated successfully")
+
+        // Clear form
+        setCurrentPassword("")
+        setNewPassword("")
+        setConfirmPassword("")
+        setPasswordStrength({ score: 0, message: "" })
 
         // Show success message
         Alert.alert("Success", "Your password has been updated successfully.", [
           { text: "OK", onPress: () => navigation.goBack() },
         ])
-      } catch (error: any) {
+      } catch (error) {
+        console.error("Password change error:", error)
         let errorMessage = "Failed to change password. Please try again."
 
         // Handle specific error cases
@@ -100,10 +147,11 @@ const ChangePasswordScreen = () => {
               },
             },
           ])
+        } else if (error.code === "auth/network-request-failed") {
+          Alert.alert("Network Error", "Please check your internet connection and try again.")
         } else {
           // Generic error handling
           Alert.alert("Error", errorMessage)
-          console.error("Password change error:", error)
         }
       } finally {
         setLoading(false)
@@ -111,8 +159,25 @@ const ChangePasswordScreen = () => {
     }
   }
 
-  const handleResetViaEmail = () => {
-    navigation.navigate("ResetPasswordEmail" as any)
+  const handleResetViaEmail = async () => {
+    const user = auth.currentUser
+    if (!user || !user.email) {
+      Alert.alert("Error", "Unable to find your email address. Please contact support.")
+      return
+    }
+
+    try {
+      setLoading(true)
+      await sendPasswordResetEmail(auth, user.email)
+      Alert.alert("Email Sent", `A password reset link has been sent to ${user.email}. Please check your inbox.`, [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ])
+    } catch (error) {
+      console.error("Password reset email error:", error)
+      Alert.alert("Error", "Failed to send password reset email. Please try again later.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -153,7 +218,10 @@ const ChangePasswordScreen = () => {
           <Input
             label="New Password"
             value={newPassword}
-            onChangeText={setNewPassword}
+            onChangeText={(text) => {
+              setNewPassword(text)
+              checkPasswordStrength(text)
+            }}
             placeholder="Create a new password"
             secureTextEntry={!showNewPassword}
             error={errors.newPassword}
@@ -168,6 +236,30 @@ const ChangePasswordScreen = () => {
               </TouchableOpacity>
             }
           />
+
+          {newPassword.length > 0 && (
+            <View style={styles.strengthContainer}>
+              <View style={styles.strengthBars}>
+                {[1, 2, 3, 4].map((bar) => (
+                  <View
+                    key={bar}
+                    style={[
+                      styles.strengthBar,
+                      {
+                        backgroundColor:
+                          bar <= passwordStrength.score
+                            ? getStrengthColor(passwordStrength.score, theme)
+                            : theme.colors.border,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+              <Text style={[styles.strengthText, { color: getStrengthColor(passwordStrength.score, theme) }]}>
+                {passwordStrength.message}
+              </Text>
+            </View>
+          )}
 
           <Input
             label="Confirm New Password"
@@ -189,21 +281,41 @@ const ChangePasswordScreen = () => {
           />
 
           <Button
-            title={loading ? "Resetting..." : "Reset Password"}
+            title={
+              loading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator color="white" size="small" />
+                  <Text style={styles.loadingText}>Processing...</Text>
+                </View>
+              ) : (
+                "Reset Password"
+              )
+            }
             onPress={handleResetPassword}
             disabled={loading}
             style={{ marginTop: 20 }}
           />
 
           <View style={styles.alternativeMethodContainer}>
-            <TouchableOpacity onPress={handleResetViaEmail}>
-              <Text style={[styles.alternativeMethod, { color: theme.colors.primary }]}>Try another method</Text>
+            <TouchableOpacity onPress={handleResetViaEmail} disabled={loading}>
+              <Text style={[styles.alternativeMethod, { color: theme.colors.primary, opacity: loading ? 0.5 : 1 }]}>
+                Reset via email instead
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
     </View>
   )
+}
+
+// Helper function to get color based on password strength
+const getStrengthColor = (score, theme) => {
+  if (score === 0 || score === 1) return theme.colors.error
+  if (score === 2) return "#FFA500" // Orange
+  if (score === 3) return "#2E8B57" // Sea Green
+  if (score === 4) return "#008000" // Green
+  return theme.colors.border
 }
 
 const styles = StyleSheet.create({
@@ -236,13 +348,42 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   alternativeMethodContainer: {
-    alignItems: "flex-end",
+    alignItems: "center",
     marginTop: 15,
   },
   alternativeMethod: {
     fontSize: 14,
     fontFamily: "Poppins-Medium",
     textDecorationLine: "underline",
+  },
+  strengthContainer: {
+    marginTop: 5,
+    marginBottom: 15,
+  },
+  strengthBars: {
+    flexDirection: "row",
+    marginBottom: 5,
+  },
+  strengthBar: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    marginHorizontal: 2,
+  },
+  strengthText: {
+    fontSize: 12,
+    fontFamily: "Poppins-Regular",
+    textAlign: "right",
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    color: "white",
+    marginLeft: 8,
+    fontFamily: "Poppins-Medium",
   },
 })
 
