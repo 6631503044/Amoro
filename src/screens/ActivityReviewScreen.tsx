@@ -1,39 +1,77 @@
 "use client"
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native"
 import { useNavigation, useRoute } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
+import { useAuth } from "../context/AuthContext"
 import { format } from "date-fns"
+import { useState, useEffect } from "react"
 
-// Mock data for a specific activity review
-const ACTIVITY_REVIEW = {
-  id: "1",
-  title: "Dinner at Italian Restaurant",
-  date: "2023-06-10",
-  startTime: "19:00",
-  endTime: "21:30",
-  type: "couple",
-  tag: "date",
-  emoji: "🍝",
-  rating: 5,
-  review:
-    "Had an amazing time! The food was delicious and the atmosphere was perfect for our date night. We should definitely come back here again soon.",
-  partnerRating: 4,
-  partnerReview: "Great food and service. I enjoyed the pasta and wine selection. Would recommend to friends.",
-  mood: "Happy",
-  partnerMood: "Relaxed",
-}
+const API_URL = "https://amoro-backend-3gsl.onrender.com"
 
 const ActivityReviewScreen = () => {
   const navigation = useNavigation()
   const route = useRoute()
   const { theme } = useTheme()
+  const { user } = useAuth()
 
-  // In a real app, you would fetch the activity based on the ID from the route
-  // const { activityId } = route.params;
-  const activity = ACTIVITY_REVIEW
+  const [loading, setLoading] = useState(true)
+  const [activity, setActivity] = useState(null)
+  const [partnerReview, setPartnerReview] = useState(null)
+  const [error, setError] = useState(null)
 
-  const renderRatingStars = (rating: number) => {
+  // Get the activityId from route params
+  const { activityId } = route.params || {}
+
+  useEffect(() => {
+    const fetchActivityData = async () => {
+      if (!activityId) {
+        setError("No activity ID provided")
+        setLoading(false)
+        return
+      }
+
+      try {
+        // Fetch the activity data
+        const response = await fetch(`${API_URL}/activities/${activityId}`)
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch activity: ${response.status}`)
+        }
+
+        const data = await response.json()
+        setActivity(data)
+
+        // If it's a couple activity, fetch partner's review
+        if (data.type === "couple" && data.partnerId) {
+          try {
+            const partnerResponse = await fetch(`${API_URL}/activities/${activityId}/partner-review`)
+
+            if (partnerResponse.ok) {
+              const partnerData = await partnerResponse.json()
+              setPartnerReview(partnerData)
+            } else {
+              // Partner hasn't reviewed yet - this is not an error
+              setPartnerReview(null)
+            }
+          } catch (partnerError) {
+            console.error("Error fetching partner review:", partnerError)
+            // Not setting error state here as this is not a critical error
+          }
+        }
+
+        setLoading(false)
+      } catch (err) {
+        console.error("Error fetching activity:", err)
+        setError(err.message || "Failed to load activity data")
+        setLoading(false)
+      }
+    }
+
+    fetchActivityData()
+  }, [activityId])
+
+  const renderRatingStars = (rating) => {
     return (
       <View style={styles.ratingContainer}>
         {[1, 2, 3, 4, 5].map((star) => (
@@ -50,7 +88,45 @@ const ActivityReviewScreen = () => {
   }
 
   const handleEditReview = () => {
-    navigation.navigate("AddReview" as never, { activityId: activity.id } as never)
+    navigation.navigate("AddReview", { activityId })
+  }
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading activity...</Text>
+      </View>
+    )
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
+        <Ionicons name="alert-circle-outline" size={50} color={theme.colors.error} />
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: theme.colors.primary }]}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.buttonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    )
+  }
+
+  if (!activity) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.errorText, { color: theme.colors.text }]}>Activity not found</Text>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: theme.colors.primary }]}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.buttonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    )
   }
 
   return (
@@ -68,7 +144,7 @@ const ActivityReviewScreen = () => {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.activityHeader, { backgroundColor: theme.colors.card }]}>
           <View style={styles.emojiContainer}>
-            <Text style={styles.emoji}>{activity.emoji}</Text>
+            <Text style={styles.emoji}>{activity.emoji || "🎯"}</Text>
           </View>
           <View style={styles.activityDetails}>
             <Text style={[styles.activityTitle, { color: theme.colors.text }]}>{activity.title}</Text>
@@ -81,35 +157,79 @@ const ActivityReviewScreen = () => {
           </View>
         </View>
 
+        {/* User's review section */}
         <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your Mood</Text>
-          <Text style={[styles.moodText, { color: theme.colors.text }]}>{activity.mood}</Text>
+          <Text style={[styles.moodText, { color: theme.colors.text }]}>{activity.mood || "Not specified"}</Text>
         </View>
 
         <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your Rating</Text>
-          {renderRatingStars(activity.rating)}
+          {activity.rating ? (
+            renderRatingStars(activity.rating)
+          ) : (
+            <Text style={[styles.noReviewText, { color: theme.colors.secondaryText }]}>
+              You haven't rated this activity yet
+            </Text>
+          )}
         </View>
 
         <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your Review</Text>
-          <Text style={[styles.sectionContent, { color: theme.colors.text }]}>{activity.review}</Text>
+          {activity.review ? (
+            <Text style={[styles.sectionContent, { color: theme.colors.text }]}>{activity.review}</Text>
+          ) : (
+            <Text style={[styles.noReviewText, { color: theme.colors.secondaryText }]}>
+              You haven't reviewed this activity yet
+            </Text>
+          )}
         </View>
 
-        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Partner's Mood</Text>
-          <Text style={[styles.moodText, { color: theme.colors.text }]}>{activity.partnerMood}</Text>
-        </View>
+        {/* Partner's review section - only show for couple activities */}
+        {activity.type === "couple" && (
+          <>
+            <View style={styles.divider}>
+              <View style={[styles.dividerLine, { backgroundColor: theme.colors.border }]} />
+              <Text style={[styles.dividerText, { color: theme.colors.secondaryText }]}>PARTNER'S REVIEW</Text>
+              <View style={[styles.dividerLine, { backgroundColor: theme.colors.border }]} />
+            </View>
 
-        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Partner's Rating</Text>
-          {renderRatingStars(activity.partnerRating)}
-        </View>
+            {partnerReview ? (
+              <>
+                <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Partner's Mood</Text>
+                  <Text style={[styles.moodText, { color: theme.colors.text }]}>
+                    {partnerReview.mood || "Not specified"}
+                  </Text>
+                </View>
 
-        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Partner's Review</Text>
-          <Text style={[styles.sectionContent, { color: theme.colors.text }]}>{activity.partnerReview}</Text>
-        </View>
+                <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Partner's Rating</Text>
+                  {partnerReview.rating ? (
+                    renderRatingStars(partnerReview.rating)
+                  ) : (
+                    <Text style={[styles.noReviewText, { color: theme.colors.secondaryText }]}>No rating provided</Text>
+                  )}
+                </View>
+
+                <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Partner's Review</Text>
+                  {partnerReview.review ? (
+                    <Text style={[styles.sectionContent, { color: theme.colors.text }]}>{partnerReview.review}</Text>
+                  ) : (
+                    <Text style={[styles.noReviewText, { color: theme.colors.secondaryText }]}>No review provided</Text>
+                  )}
+                </View>
+              </>
+            ) : (
+              <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+                <Text style={[styles.noPartnerReview, { color: theme.colors.secondaryText }]}>
+                  Your partner hasn't reviewed this activity yet
+                </Text>
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
     </View>
   )
@@ -118,6 +238,11 @@ const ActivityReviewScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
   header: {
     flexDirection: "row",
@@ -196,7 +321,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins-Medium",
   },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 15,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
+  },
+  noReviewText: {
+    fontFamily: "Poppins-Regular",
+    fontSize: 14,
+    fontStyle: "italic",
+  },
+  noPartnerReview: {
+    fontFamily: "Poppins-Medium",
+    fontSize: 15,
+    textAlign: "center",
+    padding: 10,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+  },
+  errorText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    textAlign: "center",
+  },
+  button: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: "white",
+    fontFamily: "Poppins-Medium",
+    fontSize: 16,
+  },
 })
 
 export default ActivityReviewScreen
-
