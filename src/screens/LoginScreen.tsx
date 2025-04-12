@@ -26,6 +26,7 @@ import type { StackNavigationProp } from "@react-navigation/stack"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { handleGoogleSignIn } from "../context/googleAuth"
 import * as Google from "expo-auth-session/providers/google"
+import { auth } from "../../firebaseConfig"
 
 const API_URL = "https://amoro-backend-3gsl.onrender.com"
 
@@ -42,8 +43,8 @@ const LoginScreen = () => {
   const [errors, setErrors] = useState({ email: "", password: "" })
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: '378572137696-oe8vginkilm2tt7050ao3lh7dvfa5fnt.apps.googleusercontent.com',
-    redirectUri: 'https://auth.expo.io/@ProjectAmoro/ProjectAmoro',
+    clientId: "378572137696-oe8vginkilm2tt7050ao3lh7dvfa5fnt.apps.googleusercontent.com",
+    redirectUri: "https://auth.expo.io/@ProjectAmoro/ProjectAmoro",
   })
 
   useEffect(() => {
@@ -122,31 +123,35 @@ const LoginScreen = () => {
         await AsyncStorage.setItem("user", JSON.stringify(userObject))
 
         // After successful login, get the FCM token
-        console.log('Trying to get Token')
-        const fcmToken = (await firebase.initializeApp(firebaseConfig)).messaging().getToken()   
-        console.log('FCM Token:', fcmToken)
+        console.log("Trying to get Token")
+        // For FCM token, you'll need to properly import and initialize firebase messaging
+        // This is a placeholder - you'll need to implement proper FCM token retrieval
+        let fcmToken = null
+        console.log("FCM Token functionality needs proper implementation")
 
         // Save to backend
         if (user?.uid && fcmToken) {
           await fetch(`https://amoro-backend-3gsl.onrender.com/users/${user.uid}/fcmtoken`, {
-            method: 'PUT',
+            method: "PUT",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({ fcmToken }),
           })
         }
         // After successful login, get the FCM token
-        console.log('Trying to get Token')
-        const fcmToken = (await firebase.initializeApp(firebaseConfig)).messaging().getToken()   
-        console.log('FCM Token:', fcmToken)
+        console.log("Trying to get Token")
+        // For FCM token, you'll need to properly import and initialize firebase messaging
+        // This is a placeholder - you'll need to implement proper FCM token retrieval
+        fcmToken = null
+        console.log("FCM Token functionality needs proper implementation")
 
         // Save to backend
         if (user?.uid && fcmToken) {
           await fetch(`https://amoro-backend-3gsl.onrender.com/users/${user.uid}/fcmtoken`, {
-            method: 'PUT',
+            method: "PUT",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({ fcmToken }),
           })
