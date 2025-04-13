@@ -7,10 +7,12 @@ import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import Input from "../components/Input"
 import Button from "../components/Button"
+import { useAuth } from "../context/AuthContext"
 
 const AddPartnerScreen = () => {
   const navigation = useNavigation()
   const { theme } = useTheme()
+  const { user } = useAuth()
 
   const [partnerEmail, setPartnerEmail] = useState("")
   const [loading, setLoading] = useState(false)
@@ -34,15 +36,31 @@ const AddPartnerScreen = () => {
       setLoading(true)
 
       try {
-        // In a real app, you would make an API call to send the invitation
-        // For demo purposes, we'll just simulate the API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        // Make API call to send notification
+        console.log("Email : ", user?.email)
+        console.log("PartnerEmail : ",partnerEmail)
+        const response = await fetch("https://amoro-backend-3gsl.onrender.com/notification/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            senderemail: user?.email,
+            receiveremail: partnerEmail,
+          }),
+        })
+        
+        if (!response.ok) {
+          console.log(response.status)
+          throw new Error("Failed to send notification")
+        }
 
         Alert.alert("Invitation Sent", `An invitation has been sent to ${partnerEmail}`, [
           { text: "OK", onPress: () => navigation.goBack() },
         ])
       } catch (error) {
         Alert.alert("Error", "Failed to send invitation. Please try again.")
+        //console.log(error)
       } finally {
         setLoading(false)
       }

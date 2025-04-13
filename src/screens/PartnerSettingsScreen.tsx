@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } fr
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from "../context/AuthContext"
 
 const PartnerSettingsScreen = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
-  
+  const { user } = useAuth();
+
   const handleRemovePartner = () => {
     Alert.alert(
       'Remove Partner',
@@ -22,6 +24,17 @@ const PartnerSettingsScreen = () => {
           style: 'destructive',
           onPress: () => {
             // Handle partner removal logic here
+            const response = await fetch("https://amoro-backend-3gsl.onrender.com/notification/deletepartner", {
+              method: "Delete",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                senderemail: user?.email,
+                receiveremail: partnerEmail,
+              }),
+            })
+            
             navigation.goBack();
           },
         },
