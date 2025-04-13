@@ -7,6 +7,8 @@ import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
 import Input from "../components/Input"
 import Button from "../components/Button"
+import { sendPasswordResetEmail } from "firebase/auth"
+import { auth } from "../../firebaseConfig"
 
 const ResetPasswordEmailScreen = () => {
   const navigation = useNavigation()
@@ -30,14 +32,29 @@ const ResetPasswordEmailScreen = () => {
     return true
   }
 
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
     if (validateForm()) {
       setLoading(true)
-      // Simulate API call
-      setTimeout(() => {
-        setLoading(false)
+      setError("")
+
+      try {
+        await sendPasswordResetEmail(auth, email)
         setEmailSent(true)
-      }, 1000)
+      } catch (err) {
+        // Handle specific Firebase Auth errors
+        if (err.code === "auth/user-not-found") {
+          setError("No user found with this email address")
+        } else if (err.code === "auth/invalid-email") {
+          setError("Invalid email format")
+        } else if (err.code === "auth/too-many-requests") {
+          setError("Too many attempts. Please try again later")
+        } else {
+          setError("Failed to send reset email. Please try again")
+          console.error("Password reset error:", err)
+        }
+      } finally {
+        setLoading(false)
+      }
     }
   }
 
@@ -156,4 +173,3 @@ const styles = StyleSheet.create({
 })
 
 export default ResetPasswordEmailScreen
-

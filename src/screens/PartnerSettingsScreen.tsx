@@ -5,10 +5,44 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from "../context/AuthContext"
 
+interface Partner {
+  email: string;
+  name?: string;
+}
+
+const fetchPartnerDetails = async (partnerId: string): Promise<Partner | null> => {
+  try {
+    const response = await fetch(`https://amoro-backend-3gsl.onrender.com/users/${partnerId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch partner details');
+    }
+    const data = await response.json();
+    return {
+      email: data.email,
+      name: data.name
+    };
+  } catch (error) {
+    console.error('Error fetching partner details:', error);
+    return null;
+  }
+};
+
 const PartnerSettingsScreen = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { user } = useAuth();
+  const [partnerEmail, setPartnerEmail] = React.useState('');
+
+  React.useEffect(() => {
+    // Fetch partner email using the partnerId if available
+    if (user?.partnerId) {
+      fetchPartnerDetails(user.partnerId).then(partner => {
+        if (partner?.email) {
+          setPartnerEmail(partner.email);
+        }
+      });
+    }
+  }, [user?.partnerId]);
 
   const handleRemovePartner = () => {
     Alert.alert(
@@ -22,7 +56,7 @@ const PartnerSettingsScreen = () => {
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             // Handle partner removal logic here
             const response = await fetch("https://amoro-backend-3gsl.onrender.com/notification/deletepartner", {
               method: "Delete",
@@ -33,7 +67,7 @@ const PartnerSettingsScreen = () => {
                 senderemail: user?.email,
                 receiveremail: partnerEmail,
               }),
-            })
+            });
             
             navigation.goBack();
           },

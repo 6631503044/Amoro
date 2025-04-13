@@ -130,8 +130,9 @@ const MoodsScreen = () => {
                 type: taskData.withPartner ? "couple" : "personal", // This checks if withPartner is not null
                 withPartner: taskData.withPartner, // Add this field
                 tag: tagName,
+                mood: taskData.Mood && taskData.Mood.Description,
                 emoji: emoji,
-                reviewed: taskData.Mood && (taskData.Mood.Score || taskData.Mood.Description),
+                review: taskData.Mood && taskData.Mood.Review,
                 rating: taskData.Mood && taskData.Mood.Score ? Number.parseInt(taskData.Mood.Score) : 0,
                 description: taskData.description,
                 location: taskData.location,

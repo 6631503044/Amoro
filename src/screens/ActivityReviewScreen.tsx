@@ -104,17 +104,25 @@ const ActivityReviewScreen = () => {
       const partnerTask = await partnerResponse.json()
       console.log("Partner task fetched:", partnerTask)
 
-      // Extract review data from the partner task
+      // Check if partnerTask is valid before extracting data
+      if (!partnerTask) {
+        console.log("Partner task data is null or undefined")
+        setPartnerReview(null)
+        return
+      }
+
+      // Extract review data from the partner task with safer access
       const partnerReviewData = {
-        mood: partnerTask.mood || null,
-        rating: partnerTask.rating || null,
-        review: partnerTask.review || null,
+        mood: partnerTask?.mood || null,
+        rating: partnerTask?.rating || null,
+        review: partnerTask?.review || null,
       }
 
       setPartnerReview(partnerReviewData)
     } catch (partnerErr) {
       console.error("Error fetching partner review:", partnerErr)
-      // Not setting error state here as this is not a critical error
+      // Set partnerReview to null to avoid rendering issues
+      setPartnerReview(null)
     } finally {
       setPartnerLoading(false)
     }
@@ -255,13 +263,13 @@ const ActivityReviewScreen = () => {
                 <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Partner's Mood</Text>
                   <Text style={[styles.moodText, { color: theme.colors.text }]}>
-                    {partnerReview.mood || "Not specified"}
+                    {partnerReview?.mood || "Not specified"}
                   </Text>
                 </View>
 
                 <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Partner's Rating</Text>
-                  {partnerReview.rating ? (
+                  {partnerReview?.rating ? (
                     renderRatingStars(partnerReview.rating)
                   ) : (
                     <Text style={[styles.noReviewText, { color: theme.colors.secondaryText }]}>No rating provided</Text>
@@ -270,7 +278,7 @@ const ActivityReviewScreen = () => {
 
                 <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
                   <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Partner's Review</Text>
-                  {partnerReview.review ? (
+                  {partnerReview?.review ? (
                     <Text style={[styles.sectionContent, { color: theme.colors.text }]}>{partnerReview.review}</Text>
                   ) : (
                     <Text style={[styles.noReviewText, { color: theme.colors.secondaryText }]}>No review provided</Text>
