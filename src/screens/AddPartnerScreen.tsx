@@ -1,115 +1,136 @@
 "use client"
-
 import { useState } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from "react-native"
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTheme } from "../context/ThemeContext"
-import Input from "../components/Input"
-import Button from "../components/Button"
 import { useAuth } from "../context/AuthContext"
+import Button from "../components/Button"
 
 const AddPartnerScreen = () => {
   const navigation = useNavigation()
   const { theme } = useTheme()
-  const { user } = useAuth()
-
+  const { user, updatePartnerInfo } = useAuth()
   const [partnerEmail, setPartnerEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const validateForm = () => {
+  const handleSendInvite = async () => {
     if (!partnerEmail) {
-      setError("Partner email is required")
-      return false
-    } else if (!/\S+@\S+\.\S+/.test(partnerEmail)) {
-      setError("Please enter a valid email address")
-      return false
+      setError("Please enter your partner's email")
+      return
     }
 
+    if (!/\S+@\S+\.\S+/.test(partnerEmail)) {
+      setError("Please enter a valid email address")
+      return
+    }
+
+    if (partnerEmail === user?.email) {
+      setError("You cannot add yourself as a partner")
+      return
+    }
+
+    setLoading(true)
     setError("")
-    return true
-  }
 
-  const handleSendInvite = async () => {
-    if (validateForm()) {
-      setLoading(true)
+    try {
+      // Send invitation to backend
+      const API_URL = "https://amoro-backend-3gsl.onrender.com"
+      const response = await fetch(`${API_URL}/notification/sendpartnerrequest`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          senderemail: user?.email,
+          receiveremail: partnerEmail,
+        }),
+      })
 
-      try {
-        // Make API call to send notification
-        console.log("Email : ", user?.email)
-        console.log("PartnerEmail : ",partnerEmail)
-        const response = await fetch("https://amoro-backend-3gsl.onrender.com/notification/send", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            senderemail: user?.email,
-            receiveremail: partnerEmail,
-          }),
-        })
-        
-        if (!response.ok) {
-          console.log(response.status)
-          throw new Error("Failed to send notification")
-        }
+      if (response.ok) {
+        // Store the partner email temporarily in AsyncStorage
+        // This will be updated with the partnerId when the invitation is accepted
+        await updatePartnerInfo(undefined, partnerEmail)
 
-        Alert.alert("Invitation Sent", `An invitation has been sent to ${partnerEmail}`, [
-          { text: "OK", onPress: () => navigation.goBack() },
-        ])
-      } catch (error) {
-        Alert.alert("Error", "Failed to send invitation. Please try again.")
-        //console.log(error)
-      } finally {
-        setLoading(false)
+        Alert.alert(
+          "Invitation Sent",
+          "Your partner invitation has been sent successfully. They will need to accept it to connect your accounts.",
+          [{ text: "OK", onPress: () => navigation.goBack() }],
+        )
+      } else {
+        const errorData = await response.json()
+        setError(errorData.message || "Failed to send invitation. Please try again.")
       }
+    } catch (error) {
+      console.error("Error sending partner invitation:", error)
+      setError("An error occurred. Please check your connection and try again.")
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.colors.text }]}>Add Partner</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.iconContainer}>
-          <View style={[styles.iconBackground, { backgroundColor: `${theme.colors.primary}20` }]}>
-            <Ionicons name="people" size={60} color={theme.colors.primary} />
-          </View>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: theme.colors.text }]}>Add Partner</Text>
+          <View style={{ width: 24 }} />
         </View>
 
-        <Text style={[styles.description, { color: theme.colors.secondaryText }]}>
-          Connect with your partner by sending them an invitation. They will need to accept your invitation to become
-          your partner.
-        </Text>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="people" size={80} color={theme.colors.primary} />
+          </View>
 
-        <View style={styles.formSection}>
-          <Input
-            label="Partner's Email"
-            value={partnerEmail}
-            onChangeText={setPartnerEmail}
-            placeholder="Enter your partner's email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            error={error}
-            leftIcon={<Ionicons name="mail-outline" size={20} color={theme.colors.secondaryText} />}
-          />
+          <Text style={[styles.subtitle, { color: theme.colors.text }]}>Connect with your partner</Text>
+          <Text style={[styles.description, { color: theme.colors.secondaryText }]}>
+            Enter your partner's email address to send them an invitation to connect your accounts.
+          </Text>
+
+          <View style={styles.inputContainer}>
+            <Text style={[styles.label, { color: theme.colors.text }]}>Partner's Email</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.colors.card,
+                  color: theme.colors.text,
+                  borderColor: error ? "red" : theme.colors.border,
+                },
+              ]}
+              placeholder="Enter email address"
+              placeholderTextColor={theme.colors.secondaryText}
+              value={partnerEmail}
+              onChangeText={setPartnerEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          </View>
 
           <Button
-            title={loading ? "Sending..." : "Send Invitation"}
+            title={loading ? <ActivityIndicator color="white" /> : "Send Invitation"}
             onPress={handleSendInvite}
             disabled={loading}
-            style={{ marginTop: 20 }}
           />
-        </View>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -135,26 +156,42 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     alignItems: "center",
-    marginBottom: 30,
+    marginVertical: 30,
   },
-  iconBackground: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: "center",
-    alignItems: "center",
+  subtitle: {
+    fontSize: 24,
+    fontFamily: "Poppins-SemiBold",
+    textAlign: "center",
+    marginBottom: 10,
   },
   description: {
     fontSize: 16,
     fontFamily: "Poppins-Regular",
     textAlign: "center",
     marginBottom: 30,
-    lineHeight: 24,
   },
-  formSection: {
-    marginBottom: 20,
+  inputContainer: {
+    marginBottom: 30,
+  },
+  label: {
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    marginBottom: 8,
+  },
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    fontFamily: "Poppins-Regular",
+  },
+  errorText: {
+    color: "red",
+    fontSize: 14,
+    fontFamily: "Poppins-Regular",
+    marginTop: 5,
   },
 })
 
 export default AddPartnerScreen
-

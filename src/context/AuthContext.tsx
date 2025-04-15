@@ -14,6 +14,7 @@ type User = {
   phone?: string
   photoURL?: string
   partnerId?: string
+  partnerEmail?: string
 }
 
 type UpdateProfileParams = {
@@ -42,6 +43,7 @@ type AuthContextType = {
   signInWithGoogle: () => Promise<void>
   signInWithApple: () => Promise<void>
   updateProfile?: (params: UpdateProfileParams) => Promise<void>
+  updatePartnerInfo: (partnerId?: string, partnerEmail?: string) => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -108,6 +110,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         displayName: "John Doe",
         photoURL: "https://via.placeholder.com/150",
         partnerId: "456",
+        partnerEmail: "partner@example.com",
       }
 
       await AsyncStorage.setItem("user", JSON.stringify(mockUser))
@@ -263,6 +266,30 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     }
   }
 
+  const updatePartnerInfo = async (partnerId?: string, partnerEmail?: string) => {
+    try {
+      if (!user) throw new Error("No user logged in")
+
+      // Update user object with partner info
+      const updatedUser = {
+        ...user,
+        partnerId: partnerId,
+        partnerEmail: partnerEmail,
+      }
+
+      // Save to AsyncStorage
+      await AsyncStorage.setItem("user", JSON.stringify(updatedUser))
+
+      // Update state
+      setUser(updatedUser)
+
+      return true
+    } catch (error) {
+      console.error("Partner info update failed:", error)
+      throw error
+    }
+  }
+
   const value = {
     user,
     loading,
@@ -272,6 +299,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     signInWithGoogle,
     signInWithApple,
     updateProfile,
+    updatePartnerInfo,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -27,7 +27,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { handleGoogleSignIn } from "../context/googleAuth"
 import * as Google from "expo-auth-session/providers/google"
 import { auth } from "../../firebaseConfig"
-import { registerForPushNotificationsAsync } from '../context/expoNotification'
+import { registerForPushNotificationsAsync } from "../context/expoNotification"
 
 const API_URL = "https://amoro-backend-3gsl.onrender.com"
 
@@ -100,6 +100,25 @@ const LoginScreen = () => {
           // If user data exists in backend, use it
           const userData = await response.json()
 
+          // Fetch partner information if available
+          let partnerEmail = null
+          let partnerId = null
+
+          if (userData.data?.partnerId) {
+            partnerId = userData.data.partnerId
+
+            // Fetch partner details if we have a partnerId
+            try {
+              const partnerResponse = await fetch(`${API_URL}/users/${partnerId}`)
+              if (partnerResponse.ok) {
+                const partnerData = await partnerResponse.json()
+                partnerEmail = partnerData.data?.email
+              }
+            } catch (partnerError) {
+              console.error("Error fetching partner details:", partnerError)
+            }
+          }
+
           userObject = {
             id: uid,
             email: email,
@@ -109,6 +128,8 @@ const LoginScreen = () => {
             hobbies: Array.isArray(userData.data?.Hobbies) ? userData.data?.Hobbies.join(", ") : "",
             phone: userData.data?.Phone,
             photoURL: userData.data?.photoURL || "https://via.placeholder.com/150",
+            partnerId: partnerId,
+            partnerEmail: partnerEmail,
           }
         } else {
           // If user data doesn't exist in backend, create a basic user object
@@ -125,18 +146,18 @@ const LoginScreen = () => {
 
         // Register for push notifications
         try {
-          const expoPushToken = await registerForPushNotificationsAsync();
+          const expoPushToken = await registerForPushNotificationsAsync()
           if (expoPushToken && user?.uid) {
             await fetch(`${API_URL}/users/${user.uid}`, {
-              method: 'PUT',
+              method: "PUT",
               headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
               },
               body: JSON.stringify({ PushToken: expoPushToken }),
-            });
+            })
           }
         } catch (error) {
-          console.error('Error registering for push notifications:', error);
+          console.error("Error registering for push notifications:", error)
         }
       } catch (error) {
         console.error("Login error:", error)
@@ -149,8 +170,6 @@ const LoginScreen = () => {
         } else {
           Alert.alert("Login Error", "An error occurred during login. Please try again.")
         }
-        // Clear password field
-        setPassword("")
         // Clear password field
         setPassword("")
       } finally {

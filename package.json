@@ -31,6 +31,7 @@
     "expo-auth-session": "~6.0.3",
     "expo-calendar": "~14.0.6",
     "expo-contacts": "~14.0.5",
+    "expo-dev-client": "~5.0.19",
     "expo-device": "~7.0.3",
     "expo-image-picker": "^16.0.6",
     "expo-localization": "^16.0.1",
@@ -42,6 +43,7 @@
     "lucide-react-native": "^0.477.0",
     "metro": "^0.81.0",
     "metro-config": "^0.81.2",
+    "projectamoro": "file:",
     "react": "18.3.1",
     "react-dom": "^18.3.1",
     "react-native": "0.76.9",
@@ -53,8 +55,7 @@
     "react-native-svg": "15.8.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "^0.19.13",
-    "url-parse": "^1.5.10",
-    "expo-dev-client": "~5.0.19"
+    "url-parse": "^1.5.10"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
