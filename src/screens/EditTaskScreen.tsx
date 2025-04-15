@@ -21,6 +21,7 @@ import Button from "../components/Button"
 import CalendarPickerModal from "../components/CalendarPickerModal"
 import { useAuth } from "../context/AuthContext"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { scheduleTaskNotification, cancelTaskNotification } from "../context/expoNotification"
 
 // Mock tags data
 const TAGS = [
@@ -216,8 +217,26 @@ const EditTaskScreen = () => {
         throw new Error(`API request failed with status ${response.status}`)
       }
 
+      // Cancel existing notification and schedule a new one
+      try {
+        // First cancel any existing notification for this task
+        await cancelTaskNotification(activityId)
+
+        // Then schedule a new notification
+        const taskWithId = {
+          ...payload,
+          id: activityId,
+        }
+
+        await scheduleTaskNotification(taskWithId, notificationTime)
+      } catch (notificationError) {
+        console.error("Failed to update notification:", notificationError)
+        // Continue with the flow even if notification scheduling fails
+      }
+
       // Set flag to refresh home screen data
       await AsyncStorage.setItem("refreshHomeData", "true")
+      await AsyncStorage.setItem("refreshNotifications", "true")
 
       // Navigate back on success
       navigation.goBack()

@@ -22,6 +22,7 @@ import Button from "../components/Button"
 import CalendarPickerModal from "../components/CalendarPickerModal"
 import { useAuth } from "../context/AuthContext"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { scheduleTaskNotification } from "../context/expoNotification"
 
 // Mock tags data
 const TAGS = [
@@ -193,8 +194,22 @@ const AddTaskScreen = () => {
       const responseData = await response.json()
       console.log("Task created successfully:", responseData)
 
+      // Schedule local notification for this task
+      try {
+        const taskWithId = {
+          ...payload,
+          id: responseData.id || responseData._id || `task-${Date.now()}`,
+        }
+
+        await scheduleTaskNotification(taskWithId, notificationTime)
+      } catch (notificationError) {
+        console.error("Failed to schedule notification:", notificationError)
+        // Continue with the flow even if notification scheduling fails
+      }
+
       // Set flag to refresh home screen data
       await AsyncStorage.setItem("refreshHomeData", "true")
+      await AsyncStorage.setItem("refreshNotifications", "true")
 
       // Navigate back on success
       navigation.goBack()
