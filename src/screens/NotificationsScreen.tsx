@@ -12,50 +12,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 
 // Mock data for notifications
 const NOTIFICATIONS = [
-  {
-    id: "1",
-    title: "Dinner Date",
-    message: "Reminder: You have a dinner date in 30 minutes",
-    time: "2023-06-15T18:30:00",
-    read: false,
-    type: "reminder",
-    activityId: "1",
-  },
-  {
-    id: "2",
-    title: "Partner Request",
-    message: "Jane Doe has sent you a partner request",
-    time: "2023-06-15T14:20:00",
-    read: true,
-    type: "request",
-  },
-  {
-    id: "3",
-    title: "Movie Night",
-    message: "Reminder: Movie night starts in 1 hour",
-    time: "2023-06-14T20:30:00",
-    read: true,
-    type: "reminder",
-    activityId: "3",
-  },
-  {
-    id: "4",
-    title: "Activity Added",
-    message: 'Your partner added "Shopping Trip" to your calendar',
-    time: "2023-06-14T10:15:00",
-    read: true,
-    type: "activity",
-    activityId: "5",
-  },
-  {
-    id: "5",
-    title: "Review Request",
-    message: "How was your Beach Day? Add a review now!",
-    time: "2023-06-13T09:00:00",
-    read: true,
-    type: "review",
-    activityId: "3",
-  },
 ]
 
 const NotificationsScreen = () => {
@@ -112,7 +68,7 @@ const NotificationsScreen = () => {
 
   useEffect(() => {
     // Initialize with mock data
-    setReceivedNotifications([...NOTIFICATIONS])
+    //setReceivedNotifications([...NOTIFICATIONS])
 
     const createNotification = (notification: Notifications.Notification) => {
       const { title, body, data } = notification.request.content

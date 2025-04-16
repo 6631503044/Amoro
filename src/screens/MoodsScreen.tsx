@@ -150,7 +150,7 @@ const MoodsScreen = () => {
 
       setActivities(completedActivities)
       setInitialLoadDone(true)
-
+      
       console.log("Processed activities:", completedActivities.length)
     } catch (err) {
       console.error("Error fetching activities:", err)
@@ -280,7 +280,8 @@ const MoodsScreen = () => {
         </View>
 
         <View style={styles.activityFooter}>
-          {item.reviewed ? (
+          {/* {console.log("Review Status:", item.reviewed, "Type:", typeof item.reviewed)} */}
+          {item.review === "" ? (
             renderRatingStars(item.rating)
           ) : (
             <TouchableOpacity
