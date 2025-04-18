@@ -38,7 +38,6 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
-App.tsx
 
 # Local dependencies
 /node_modules
